@@ -11,6 +11,9 @@ import {
 // Load environment variables
 config();
 
+// Import configuration
+import { pyClientConfig } from '../../config/pyclient';
+
 export class PyClient {
   private axiosInstance: AxiosInstance;
   private defaultRetries: number;
@@ -219,9 +222,8 @@ export class PyClient {
    * Generate metric for a specific metrics config and date
    */
   public genMetric = async (metrics_config_id: number, date: number): Promise<boolean> => {
-    return true;
     try {
-      const response = await this.post('/api/metrics/generate', {
+      const response = await this.post('/metrics/analyze', {
         metrics_config_id,
         date
       });
@@ -265,7 +267,7 @@ export class PyClient {
 }
 
 // Export a default instance
-export const pyClient = new PyClient();
+export const pyClient = new PyClient(pyClientConfig);
 
 // Export commonly used configurations
 export const createPyClient = (config: PyClientConfig) => new PyClient(config); 

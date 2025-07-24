@@ -1,9 +1,11 @@
+import { MetricState } from "../entities/Metric";
+
 export interface MetricDto {
     id: number;
     metrics_config_id: number;
     name?: string;
     date?: number;
-    state?: string;
+    state?: MetricState;
     image_url?: string;
     summary_text?: string;
     comment?: string;

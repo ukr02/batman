@@ -1,5 +1,12 @@
 import { Column, Entity, Index, PrimaryGeneratedColumn } from "typeorm";
 
+export enum MetricState {
+    RESOLVED = "RESOLVED",
+    UNRESOLVED = "UNRESOLVED", 
+    NOT_OUR_ISSUE = "NOT_OUR_ISSUE",
+    ACKNOWLEDGED = "ACKNOWLEDGED"
+}
+
 @Entity("metrics")
 @Index(["metrics_config_id"])
 @Index(["date"])
@@ -20,8 +27,8 @@ export class Metric {
     @Column({ type: "bigint", nullable: true })
     date?: number;
 
-    @Column({ type: "varchar", length: 10, nullable: true })
-    state?: string;
+    @Column({ type: "varchar", length: 20, nullable: true })
+    state?: MetricState;
 
     @Column({ type: "text", nullable: true })
     image_url?: string;

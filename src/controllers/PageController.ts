@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { PageService } from "../services/PageService";
 import { CreatePageDto, PageFilterDto } from "../dto/PageDto";
 import { PageType } from "../entities/Page";
+import { MetricState } from "../entities/Metric";
 
 export class PageController {
     constructor(private pageService: PageService) {}
@@ -190,7 +191,7 @@ export class PageController {
                          metric.criticalityScore && metric.criticalityScore > 4 ? "medium" : "low",
                 description: metric.summary_text || `Anomaly detected in ${metric.name || 'metric'}`,
                 graphImage: metric.image_url || "/anomaly_detection_plot.png",
-                state: metric.state || "resolved"
+                state: this.getMetricState(metric.state) || "unresolved"
             }));
 
             // Create comments array from metric comments
@@ -234,6 +235,23 @@ export class PageController {
                 success: false,
                 error: "Internal server error"
             });
+        }
+    }
+
+    private getMetricState(metricState: string | undefined): string {
+        if (!metricState) return "unresolved";
+        
+        switch (metricState.toUpperCase()) {
+            case MetricState.RESOLVED:
+                return "resolved";
+            case MetricState.UNRESOLVED:
+                return "unresolved";
+            case MetricState.NOT_OUR_ISSUE:
+                return "not_our_issue";
+            case MetricState.ACKNOWLEDGED:
+                return "acknowledged";
+            default:
+                return "unresolved";
         }
     }
 } 

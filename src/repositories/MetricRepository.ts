@@ -1,5 +1,5 @@
 import { Repository, In, Between } from 'typeorm';
-import { Metric } from '../entities/Metric';
+import { Metric, MetricState } from '../entities/Metric';
 import { CreateMetricDto, UpdateMetricDto, MetricFilterDto } from '../dto/MetricDto';
 
 export class MetricRepository {
@@ -74,7 +74,7 @@ export class MetricRepository {
         metrics_config_id: metricData.metrics_config_id,
         name: metricData.name,
         date: metricData.date,
-        state: metricData.state,
+        state: metricData.state as MetricState,
         image_url: metricData.image_url,
         summary_text: metricData.summary_text,
         comment: metricData.comment,
@@ -105,7 +105,7 @@ export class MetricRepository {
       }
 
       if (metricData.state !== undefined) {
-        updateData.state = metricData.state;
+        updateData.state = metricData.state as MetricState;
       }
 
       if (metricData.image_url !== undefined) {

@@ -1,4 +1,4 @@
-import { Metric } from "../entities/Metric";
+import { Metric, MetricState } from "../entities/Metric";
 import { MetricDto, CreateMetricDto } from "../dto/MetricDto";
 
 export class MetricMapper {
@@ -24,7 +24,7 @@ export class MetricMapper {
             metrics_config_id: dto.metrics_config_id,
             name: dto.name,
             date: dto.date,
-            state: dto.state,
+            state: dto.state as MetricState,
             image_url: dto.image_url,
             summary_text: dto.summary_text,
             comment: dto.comment,

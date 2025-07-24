@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS metrics (
     metrics_config_id INTEGER NOT NULL,
     name VARCHAR(100),
     date BIGINT,
-    state VARCHAR(10),
+    state VARCHAR(20),
     image_url TEXT,
     summary_text TEXT,
     comment TEXT,
