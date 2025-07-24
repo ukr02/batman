@@ -101,6 +101,84 @@ This document describes the implemented API endpoints according to the specifica
 }
 ```
 
+## 3. Get Page Details
+
+**Endpoint:** `GET /api/page/details/:page_id`
+
+**Description:** Returns detailed information about a specific page including anomalies (metrics), comments, and summaries.
+
+**Parameters:**
+- `page_id` (path parameter): The page ID
+
+**Response Format:**
+```json
+{
+  "success": true,
+  "response": {
+    "name": "name",
+    "date": "2024-01-15",
+    "summary": "Network monitoring logs showing connection patterns and bandwidth utilization across the infrastructure.",
+    "anomalies": [
+      { 
+        "id": 1, 
+        "title": "High Bandwidth Usage", 
+        "severity": "high", 
+        "description": "Unusual spike in bandwidth at 14:30",
+        "graphImage": "/anomaly_detection_plot.png",
+        "state": "resolved"
+      }
+    ],
+    "comments": [
+      {
+        "id": 1001,
+        "content": "<p>Initial investigation shows this spike coincides with a scheduled backup job.</p>",
+        "timestamp": "2024-01-15T10:30:00",
+        "anomalyId": 1,
+        "userId": "user123"
+      }
+    ],
+    "summaries": [
+      {
+        "id": 2001,
+        "content": "Bandwidth spike caused by overlapping backup jobs. Need to stagger the schedule.",
+        "timestamp": "2024-01-15T16:00:00",
+        "anomalyId": 1,
+        "userId": "user456"
+      }
+    ]
+  }
+}
+```
+
+**Error Response:**
+```json
+{
+  "success": false,
+  "error": "Page not found"
+}
+```
+
+**Data Mapping:**
+- **Anomalies**: Mapped from `Metric` entities in the database
+  - `id`: Metric ID
+  - `title`: Metric name or generated title
+  - `severity`: Based on `criticalityScore` (high: >7, medium: >4, low: ≤4)
+  - `description`: Metric summary_text or generated description
+  - `graphImage`: Metric image_url or default image
+  - `state`: Metric state or "resolved" default
+- **Comments**: Created from metric `comment` field
+  - `id`: Generated unique ID (metric.id * 1000 + 1)
+  - `content`: Wrapped in `<p>` tags
+  - `timestamp`: Metric created_at timestamp
+  - `anomalyId`: Links to the corresponding metric
+  - `userId`: Default user ID
+- **Summaries**: Created from metric `summary_text` field (when different from comment)
+  - `id`: Generated unique ID (metric.id * 2000 + 1)
+  - `content`: Raw summary text
+  - `timestamp`: Metric updated_at timestamp
+  - `anomalyId`: Links to the corresponding metric
+  - `userId`: Default user ID
+
 ## Implementation Details
 
 ### Service Listing
@@ -150,8 +228,9 @@ This will test both endpoints and verify the response formats match the specific
 
 1. **GET /api/service** - List all services
 2. **GET /api/page/:svc_id** - Get pages by service ID
-3. **GET /api/page/:page_id** - Get page with metrics (existing)
-4. **POST /api/page** - Create page and trigger metrics (existing)
+3. **GET /api/page/details/:page_id** - Get page details with anomalies, comments, and summaries
+4. **GET /api/page/page/:page_id** - Get page with metrics (existing)
+5. **POST /api/page** - Create page and trigger metrics (existing)
 
 ## Notes
 

@@ -183,18 +183,7 @@ export class MetricService {
     /**
      * Find metrics by service ID and date
      */
-    async findByServiceAndDate(serviceId: number, date: number): Promise<Array<{
-        id: number;
-        metrics_config_id: number;
-        name?: string;
-        date?: number;
-        state?: string;
-        image_url?: string;
-        summary_text?: string;
-        comment?: string;
-        value?: number;
-        criticalityScore?: number;
-    }>> {
+    async findByServiceAndDate(serviceId: number, date: number): Promise<Metric[]> {
         try {
             // Get all metric configs for the service
             const metricConfigs = await this.metricsConfigRepository.findByServiceId(serviceId);

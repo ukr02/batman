@@ -149,6 +149,7 @@ export class MetricRepository {
   }
 
   async findByConfigIdsAndDate(configIds: number[], date: number): Promise<Metric[]> {
+    console.log("configIds", configIds);
     try {
       if (configIds.length === 0) {
         return [];

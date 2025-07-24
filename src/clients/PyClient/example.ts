@@ -106,7 +106,7 @@ export async function exampleErrorHandling() {
     // This will fail and retry
     const response = await client.get('https://httpstat.us/500');
     console.log('Response after retries:', response);
-  } catch (error) {
+  } catch (error: any) {
     console.log('Expected error after all retries:', error.message);
   }
 }

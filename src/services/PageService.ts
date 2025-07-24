@@ -4,6 +4,7 @@ import { PageType } from "../entities/Page";
 import { PageMapper } from "../mappers/PageMapper";
 import { PageRepository } from "../repositories/PageRepository";
 import { MetricService } from "./MetricService";
+import { Metric } from "../entities/Metric";
 
 export class PageService {
     constructor(
@@ -189,18 +190,7 @@ export class PageService {
      */
     async getPageWithMetrics(pageId: number): Promise<{
         page: PageDto;
-        metrics: Array<{
-            id: number;
-            metrics_config_id: number;
-            name?: string;
-            date?: number;
-            state?: string;
-            image_url?: string;
-            summary_text?: string;
-            comment?: string;
-            value?: number;
-            criticalityScore?: number;
-        }>;
+        metrics: Metric[];
     } | null> {
         try {
             const page = await this.pageRepository.findById(pageId);

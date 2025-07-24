@@ -25,6 +25,7 @@ export const createPageRoutes = () => {
   const createPage = pageController.createPage.bind(pageController);
   const getPagesByService = pageController.getPagesByService.bind(pageController);
   const getPageWithMetrics = pageController.getPageWithMetrics.bind(pageController);
+  const getPageDetails = pageController.getPageDetails.bind(pageController);
 
   // Page endpoints
   router.post("/", createPage); // POST /page - Create page and trigger metrics
@@ -32,6 +33,7 @@ export const createPageRoutes = () => {
 
   // Frontend API endpoints
   router.get("/page/:page_id", getPageWithMetrics); // GET /page/:page_id - Get page with metrics
+  router.get("/page/details/:page_id", getPageDetails); // GET /page/details/:page_id - Get page details in API format
 
   return router;
 }; 
