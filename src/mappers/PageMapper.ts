@@ -22,16 +22,15 @@ export class PageMapper {
     static fromDtoToEntity(dto: CreatePageDto): Partial<Page> {
         const name = `${dto.type}_${dto.date}`;
         
-        // Convert DD-MM-YYYY format to epoch (start of IST date)
+        // Convert DD-MM-YYYY format to epoch (start of day in UTC)
         const dateParts = dto.date.split('-');
         const day = parseInt(dateParts[0], 10);
         const month = parseInt(dateParts[1], 10) - 1; // Month is 0-indexed
         const year = parseInt(dateParts[2], 10);
         
-        // Create date in IST (UTC+5:30) and get start of day
-        const istDate = new Date(year, month, day, 0, 0, 0, 0);
-        // Convert to UTC epoch (subtract 5:30 hours for IST to UTC)
-        const epoch = istDate.getTime() - (5.5 * 60 * 60 * 1000);
+        // Create date in UTC at start of day (00:00:00)
+        const utcDate = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+        const epoch = utcDate.getTime();
         
         return {
             service_id: dto.svc_id,

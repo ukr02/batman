@@ -26,14 +26,18 @@ export const createPageRoutes = () => {
   const getPagesByService = pageController.getPagesByService.bind(pageController);
   const getPageWithMetrics = pageController.getPageWithMetrics.bind(pageController);
   const getPageDetails = pageController.getPageDetails.bind(pageController);
+  const updateMetricState = pageController.updateMetricState.bind(pageController);
 
   // Page endpoints
-  router.post("/", createPage);
-  router.get("/service/:svc_id", getPagesByService);
+  router.post("/", createPage); // POST /api/page - Create page and trigger metrics
+  router.get("/service/:svc_id", getPagesByService); // GET /api/page/service/:svc_id - Get pages by service ID
 
   // Frontend API endpoints
-  router.get("/details/:page_id", getPageDetails);
-  router.get("/page/:page_id", getPageWithMetrics);
+  router.get("/details/:page_id", getPageDetails); // GET /api/page/details/:page_id - Get page details in API format
+  router.get("/page/:page_id", getPageWithMetrics); // GET /api/page/page/:page_id - Get page with metrics
+
+  // Metric endpoints
+  router.put("/metric/:metric_id/state", updateMetricState); // PUT /api/page/metric/:metric_id/state - Update metric state
 
   return router;
 }; 

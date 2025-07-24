@@ -10,7 +10,7 @@ export class MetricsConfig {
     @PrimaryGeneratedColumn({ type: "integer" })
     id!: number;
 
-    @Column({ type: "varchar", length: 255, nullable: false })
+    @Column({ type: "varchar", length: 255, nullable: false, name: "promql" })
     promql_name!: string;
 
     @Column({ type: "varchar", length: 255, nullable: false })

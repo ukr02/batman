@@ -224,11 +224,11 @@ export class PyClient {
   public genMetric = async (metrics_config_id: number, date: number): Promise<boolean> => {
     try {
       const response = await this.post('/metrics/analyze', {
-        metrics_config_id,
+        metric_config_id: metrics_config_id,
         date
       });
       
-      return response.ok && response.data?.ack === true;
+      return response.ok;
     } catch (error) {
       console.error(`[PyClient] Error generating metric for config ${metrics_config_id}, date ${date}:`, error);
       return false;

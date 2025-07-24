@@ -181,6 +181,25 @@ export class MetricService {
     }
 
     /**
+     * Update state for a metric
+     */
+    async updateState(metricId: number, state: string): Promise<Metric | null> {
+        try {
+            const metric = await this.metricRepository.findById(metricId);
+            
+            if (!metric) {
+                return null;
+            }
+            
+            const updatedMetric = await this.metricRepository.update(metricId, { state });
+            return updatedMetric;
+        } catch (error) {
+            console.error(`[MetricService] Error updating state for metric ${metricId}:`, error);
+            throw new Error(`Failed to update metric state: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+    }
+
+    /**
      * Find metrics by service ID and date
      */
     async findByServiceAndDate(serviceId: number, date: number): Promise<Metric[]> {
@@ -192,7 +211,7 @@ export class MetricService {
             if (configIds.length === 0) {
                 return [];
             }
-            
+            console.log("datedebug", date);
             // Get metrics for these configs and the specific date
             const metrics = await this.metricRepository.findByConfigIdsAndDate(configIds, date);
             return metrics;

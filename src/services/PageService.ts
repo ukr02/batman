@@ -4,7 +4,7 @@ import { PageType } from "../entities/Page";
 import { PageMapper } from "../mappers/PageMapper";
 import { PageRepository } from "../repositories/PageRepository";
 import { MetricService } from "./MetricService";
-import { Metric } from "../entities/Metric";
+import { Metric, MetricState } from "../entities/Metric";
 
 export class PageService {
     constructor(
@@ -38,10 +38,9 @@ export class PageService {
             const month = parseInt(dateParts[1], 10) - 1;
             const year = parseInt(dateParts[2], 10);
             
-            // Create date in IST (UTC+5:30) and get start of day
-            const istDate = new Date(year, month, day, 0, 0, 0, 0);
-            // Convert to UTC epoch (subtract 5:30 hours for IST to UTC)
-            const epoch = istDate.getTime() - (5.5 * 60 * 60 * 1000);
+            // Create date in UTC at start of day (00:00:00)
+            const utcDate = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+            const epoch = utcDate.getTime();
 
             // Trigger metric generation for the service
             const metricGeneration = await this.metricService.generateMetricsForService(
@@ -208,7 +207,7 @@ export class PageService {
             }
             
             const metrics = await this.metricService.findByServiceAndDate(page.service_id, page.date);
-            
+            console.log("metricsdebug", metrics);
             return {
                 page: pageDto,
                 metrics
@@ -233,6 +232,32 @@ export class PageService {
     async findById(id: number): Promise<PageDto | null> {
         const page = await this.pageRepository.findById(id);
         return page ? PageMapper.fromEntityToDto(page) : null;
+    }
+
+    /**
+     * Update state for a metric
+     */
+    async updateMetricState(metricId: number, state: string): Promise<{
+        id: number;
+        state: string;
+        updated_at: Date;
+    } | null> {
+        try {
+            const result = await this.metricService.updateState(metricId, state);
+            
+            if (!result) {
+                return null;
+            }
+            
+            return {
+                id: result.id,
+                state: result.state as MetricState,
+                updated_at: result.updated_at
+            };
+        } catch (error) {
+            console.error('[PageService] Error updating metric state:', error);
+            throw new Error(`Failed to update metric state: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
     }
 
     /**

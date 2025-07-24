@@ -182,6 +182,7 @@ export class PageController {
                 const date = new Date(epoch);
                 return date.toISOString().split('T')[0];
             };
+            console.log("pageWithMetrics", pageWithMetrics);
 
             // Map metrics to anomalies
             const anomalies = pageWithMetrics.metrics.map(metric => ({
@@ -238,6 +239,58 @@ export class PageController {
         }
     }
 
+    /**
+     * Update state for a metric
+     */
+    async updateMetricState(req: Request, res: Response): Promise<void> {
+        try {
+            const metric_id = Number(req.params.metric_id);
+            const state = this.getMetricStateFromStateForUpdate(req.body.state).toString();
+
+            if (isNaN(metric_id)) {
+                res.status(400).json({
+                    success: false,
+                    error: "Invalid metric ID"
+                });
+                return;
+            }
+
+            if (!state || !Object.values(MetricState).includes(state as MetricState)) {
+                res.status(400).json({
+                    success: false,
+                    error: "State is required and must be one of: RESOLVED, UNRESOLVED, NOT_OUR_ISSUE, ACKNOWLEDGED"
+                });
+                return;
+            }
+
+            const result = await this.pageService.updateMetricState(metric_id, state);
+            
+            if (!result) {
+                res.status(404).json({
+                    success: false,
+                    error: "Metric not found"
+                });
+                return;
+            }
+            
+            res.status(200).json({
+                success: true,
+                message: "Metric state updated successfully",
+                data: {
+                    id: result.id,
+                    state: result.state,
+                    updated_at: result.updated_at
+                }
+            });
+        } catch (error) {
+            console.error('[PageController] Error updating metric state:', error);
+            res.status(500).json({
+                success: false,
+                error: "Internal server error"
+            });
+        }
+    }
+
     private getMetricState(metricState: string | undefined): string {
         if (!metricState) return "unresolved";
         
@@ -252,6 +305,23 @@ export class PageController {
                 return "acknowledged";
             default:
                 return "unresolved";
+        }
+    }
+
+    private getMetricStateFromStateForUpdate(state: string): MetricState {
+        if (!state) return MetricState.UNRESOLVED;
+        
+        switch (state.toUpperCase()) {
+            case MetricState.RESOLVED:
+                return MetricState.RESOLVED;
+            case MetricState.UNRESOLVED:
+                return MetricState.UNRESOLVED;
+            case MetricState.NOT_OUR_ISSUE:
+                return MetricState.NOT_OUR_ISSUE;
+            case MetricState.ACKNOWLEDGED:
+                return MetricState.ACKNOWLEDGED;
+            default:
+                throw new Error(`Invalid state: ${state}`);
         }
     }
 } 
