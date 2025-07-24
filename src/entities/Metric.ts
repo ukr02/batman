@@ -35,8 +35,7 @@ export class Metric {
     @Column({ type: "float", nullable: true })
     value?: number;
 
-    @Column({ type: "integer", nullable: true })
-    @Column({ type: "integer", nullable: true, name: "criticalityscore" })
+    @Column({ type: "integer", nullable: true, name: "criticality_score" })
     criticalityScore?: number;
 
     @Column({ type: "timestamp with time zone", default: () => "CURRENT_TIMESTAMP" })
