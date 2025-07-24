@@ -13,20 +13,19 @@ export class ServiceController {
                 offset: req.query.offset ? parseInt(req.query.offset as string) : undefined
             };
 
-            const result = await this.serviceService.getAllServices(filter);
+            const servicesResponse = await this.serviceService.getAllServicesForAPI(filter);
             
             res.json({
                 success: true,
-                data: result.services,
-                total: result.total,
-                message: "Services retrieved successfully"
+                response: servicesResponse
             });
         } catch (error) {
             console.error("Error getting services:", error);
             res.status(500).json({
                 success: false,
-                error: "Failed to retrieve services",
-                message: error instanceof Error ? error.message : "Unknown error"
+                response: {
+                    message: "Error"
+                }
             });
         }
     }

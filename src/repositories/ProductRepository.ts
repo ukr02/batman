@@ -12,11 +12,7 @@ export class ProductRepository {
     try {
       const query = 'SELECT * FROM products ORDER BY created_at DESC';
       const result = await this.pool.query(query);
-      return result.rows.map(row => ({
-        ...row,
-        created_at: row.created_at ? new Date(row.created_at) : undefined,
-        updated_at: row.updated_at ? new Date(row.updated_at) : undefined
-      }));
+      return this.mapRowsToEntities(result.rows);
     } catch (error) {
       throw new Error(`Failed to fetch products: ${error}`);
     }
@@ -31,12 +27,7 @@ export class ProductRepository {
         return null;
       }
 
-      const row = result.rows[0];
-      return {
-        ...row,
-        created_at: row.created_at ? new Date(row.created_at) : undefined,
-        updated_at: row.updated_at ? new Date(row.updated_at) : undefined
-      };
+      return this.mapRowToEntity(result.rows[0]);
     } catch (error) {
       throw new Error(`Failed to fetch product with id ${id}: ${error}`);
     }
@@ -46,11 +37,7 @@ export class ProductRepository {
     try {
       const query = 'SELECT * FROM products WHERE category = $1 ORDER BY created_at DESC';
       const result = await this.pool.query(query, [category]);
-      return result.rows.map(row => ({
-        ...row,
-        created_at: row.created_at ? new Date(row.created_at) : undefined,
-        updated_at: row.updated_at ? new Date(row.updated_at) : undefined
-      }));
+      return this.mapRowsToEntities(result.rows);
     } catch (error) {
       throw new Error(`Failed to fetch products by category ${category}: ${error}`);
     }
@@ -66,12 +53,7 @@ export class ProductRepository {
       const values = [productData.name, productData.description, productData.price, productData.category];
       const result = await this.pool.query(query, values);
       
-      const row = result.rows[0];
-      return {
-        ...row,
-        created_at: row.created_at ? new Date(row.created_at) : undefined,
-        updated_at: row.updated_at ? new Date(row.updated_at) : undefined
-      };
+      return this.mapRowToEntity(result.rows[0]);
     } catch (error) {
       throw new Error(`Failed to create product: ${error}`);
     }
@@ -123,12 +105,7 @@ export class ProductRepository {
         return null;
       }
 
-      const row = result.rows[0];
-      return {
-        ...row,
-        created_at: row.created_at ? new Date(row.created_at) : undefined,
-        updated_at: row.updated_at ? new Date(row.updated_at) : undefined
-      };
+      return this.mapRowToEntity(result.rows[0]);
     } catch (error) {
       throw new Error(`Failed to update product with id ${id}: ${error}`);
     }
@@ -138,9 +115,25 @@ export class ProductRepository {
     try {
       const query = 'DELETE FROM products WHERE id = $1';
       const result = await this.pool.query(query, [id]);
-      return result.rowCount > 0;
+      return result.rowCount ? result.rowCount > 0 : false;
     } catch (error) {
       throw new Error(`Failed to delete product with id ${id}: ${error}`);
     }
+  }
+
+  private mapRowToEntity(row: any): Product {
+    return {
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      price: row.price ? Number(row.price) : 0,
+      category: row.category,
+      created_at: row.created_at ? new Date(row.created_at) : undefined,
+      updated_at: row.updated_at ? new Date(row.updated_at) : undefined
+    };
+  }
+
+  private mapRowsToEntities(rows: any[]): Product[] {
+    return rows.map(row => this.mapRowToEntity(row));
   }
 } 

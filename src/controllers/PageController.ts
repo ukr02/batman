@@ -87,53 +87,27 @@ export class PageController {
             if (isNaN(svc_id)) {
                 res.status(400).json({
                     success: false,
-                    error: "Invalid service ID"
+                    response: {
+                        message: "Error"
+                    }
                 });
                 return;
             }
 
-            const pages = await this.pageService.findByServiceId(svc_id);
-            
+            console.log("Getting pages by service", svc_id);
+            const response = await this.pageService.getPagesByServiceForAPI(svc_id);
+            console.log("Response", response);
             res.status(200).json({
                 success: true,
-                data: pages,
-                count: pages.length
+                response: response
             });
         } catch (error) {
             console.error('[PageController] Error getting pages by service:', error);
             res.status(500).json({
                 success: false,
-                error: "Internal server error"
-            });
-        }
-    }
-
-    /**
-     * Get pages hierarchy (WEEKLY as main, DAILY as children)
-     */
-    async getPagesHierarchy(req: Request, res: Response): Promise<void> {
-        try {
-            const svc_id = Number(req.query.svc_id);
-            
-            if (isNaN(svc_id)) {
-                res.status(400).json({
-                    success: false,
-                    error: "svc_id query parameter is required and must be a number"
-                });
-                return;
-            }
-
-            const hierarchy = await this.pageService.getPagesHierarchy(svc_id);
-            
-            res.status(200).json({
-                success: true,
-                data: hierarchy
-            });
-        } catch (error) {
-            console.error('[PageController] Error getting pages hierarchy:', error);
-            res.status(500).json({
-                success: false,
-                error: "Internal server error"
+                response: {
+                    message: "Error"
+                }
             });
         }
     }

@@ -35,11 +35,7 @@ export class ServiceRepository {
             }
 
             const result = await this.pool.query(query, values);
-            return result.rows.map(row => ({
-                ...row,
-                created_at: row.created_at ? new Date(row.created_at) : undefined,
-                updated_at: row.updated_at ? new Date(row.updated_at) : undefined
-            }));
+            return this.mapRowsToEntities(result.rows);
         } catch (error) {
             throw new Error(`Failed to fetch services: ${error}`);
         }
@@ -54,12 +50,7 @@ export class ServiceRepository {
                 return null;
             }
 
-            const row = result.rows[0];
-            return {
-                ...row,
-                created_at: row.created_at ? new Date(row.created_at) : undefined,
-                updated_at: row.updated_at ? new Date(row.updated_at) : undefined
-            };
+            return this.mapRowToEntity(result.rows[0]);
         } catch (error) {
             throw new Error(`Failed to fetch service with id ${id}: ${error}`);
         }
@@ -74,12 +65,7 @@ export class ServiceRepository {
                 return null;
             }
 
-            const row = result.rows[0];
-            return {
-                ...row,
-                created_at: row.created_at ? new Date(row.created_at) : undefined,
-                updated_at: row.updated_at ? new Date(row.updated_at) : undefined
-            };
+            return this.mapRowToEntity(result.rows[0]);
         } catch (error) {
             throw new Error(`Failed to fetch service with name ${serviceName}: ${error}`);
         }
@@ -94,13 +80,7 @@ export class ServiceRepository {
             `;
             
             const result = await this.pool.query(query, [createServiceDto.service_name]);
-            
-            const row = result.rows[0];
-            return {
-                ...row,
-                created_at: row.created_at ? new Date(row.created_at) : undefined,
-                updated_at: row.updated_at ? new Date(row.updated_at) : undefined
-            };
+            return this.mapRowToEntity(result.rows[0]);
         } catch (error) {
             if (error instanceof Error && error.message.includes('duplicate key')) {
                 throw new Error(`Service with name '${createServiceDto.service_name}' already exists`);
@@ -142,12 +122,7 @@ export class ServiceRepository {
                 return null;
             }
 
-            const row = result.rows[0];
-            return {
-                ...row,
-                created_at: row.created_at ? new Date(row.created_at) : undefined,
-                updated_at: row.updated_at ? new Date(row.updated_at) : undefined
-            };
+            return this.mapRowToEntity(result.rows[0]);
         } catch (error) {
             if (error instanceof Error && error.message.includes('duplicate key')) {
                 throw new Error(`Service with name '${updateServiceDto.service_name}' already exists`);
@@ -182,5 +157,18 @@ export class ServiceRepository {
         } catch (error) {
             throw new Error(`Failed to count services: ${error}`);
         }
+    }
+
+    private mapRowToEntity(row: any): Service {
+        const service = new Service();
+        service.id = row.id;
+        service.service_name = row.service_name;
+        service.created_at = row.created_at ? new Date(row.created_at) : new Date();
+        service.updated_at = row.updated_at ? new Date(row.updated_at) : new Date();
+        return service;
+    }
+
+    private mapRowsToEntities(rows: any[]): Service[] {
+        return rows.map(row => this.mapRowToEntity(row));
     }
 } 

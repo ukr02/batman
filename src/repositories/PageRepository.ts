@@ -47,7 +47,7 @@ export class PageRepository {
       }
 
       const result = await this.pool.query(query, values);
-      return result.rows;
+      return this.mapRowsToEntities(result.rows);
     } catch (error) {
       throw new Error(`Failed to fetch pages: ${error}`);
     }
@@ -62,7 +62,7 @@ export class PageRepository {
         return null;
       }
 
-      return result.rows[0];
+      return this.mapRowToEntity(result.rows[0]);
     } catch (error) {
       throw new Error(`Failed to fetch page with id ${id}: ${error}`);
     }
@@ -72,7 +72,7 @@ export class PageRepository {
     try {
       const query = 'SELECT * FROM pages WHERE service_id = $1 ORDER BY id DESC';
       const result = await this.pool.query(query, [serviceId]);
-      return result.rows;
+      return this.mapRowsToEntities(result.rows);
     } catch (error) {
       throw new Error(`Failed to fetch pages for service ${serviceId}: ${error}`);
     }
@@ -95,7 +95,7 @@ export class PageRepository {
       ];
       
       const result = await this.pool.query(query, values);
-      return result.rows[0];
+      return this.mapRowToEntity(result.rows[0]);
     } catch (error) {
       throw new Error(`Failed to create page: ${error}`);
     }
@@ -115,5 +115,26 @@ export class PageRepository {
     } catch (error) {
       throw new Error(`Failed to fetch services: ${error}`);
     }
+  }
+
+  private mapRowToEntity(row: any): Page {
+    const page = new Page();
+    page.id = row.id;
+    page.service_id = row.service_id;
+    page.name = row.name;
+    page.type = row.type;
+    page.parent_id = row.parent_id;
+    page.heading = row.heading;
+    // Ensure date is properly converted to number (epoch)
+    page.date = row.date ? Number(row.date) : undefined;
+    page.summary = row.summary;
+    page.annotations = row.annotations;
+    page.created_at = row.created_at;
+    page.updated_at = row.updated_at;
+    return page;
+  }
+
+  private mapRowsToEntities(rows: any[]): Page[] {
+    return rows.map(row => this.mapRowToEntity(row));
   }
 } 

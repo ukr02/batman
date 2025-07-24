@@ -15,6 +15,14 @@ export class ServiceService {
         };
     }
 
+    async getAllServicesForAPI(filter?: ServiceFilterDto): Promise<Array<{ id: number; name: string }>> {
+        const result = await this.getAllServices(filter);
+        return result.services.map(service => ({
+            id: service.id,
+            name: service.service_name
+        }));
+    }
+
     async getServiceById(id: number): Promise<ServiceDto | null> {
         const service = await this.serviceRepository.findById(id);
         return service ? this.mapToDto(service) : null;

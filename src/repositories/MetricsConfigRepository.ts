@@ -13,7 +13,7 @@ export class MetricsConfigRepository {
     try {
       const query = 'SELECT * FROM metrics_config ORDER BY created_at DESC';
       const result = await this.pool.query(query);
-      return result.rows;
+      return this.mapRowsToEntities(result.rows);
     } catch (error) {
       throw new Error(`Failed to fetch metrics configs: ${error}`);
     }
@@ -28,7 +28,7 @@ export class MetricsConfigRepository {
         return null;
       }
 
-      return result.rows[0];
+      return this.mapRowToEntity(result.rows[0]);
     } catch (error) {
       throw new Error(`Failed to fetch metrics config with id ${id}: ${error}`);
     }
@@ -38,7 +38,7 @@ export class MetricsConfigRepository {
     try {
       const query = 'SELECT * FROM metrics_config WHERE service_id = $1 ORDER BY created_at DESC';
       const result = await this.pool.query(query, [serviceId]);
-      return result.rows;
+      return this.mapRowsToEntities(result.rows);
     } catch (error) {
       throw new Error(`Failed to fetch metrics configs for service ${serviceId}: ${error}`);
     }
@@ -53,7 +53,7 @@ export class MetricsConfigRepository {
         return null;
       }
 
-      return result.rows[0];
+      return this.mapRowToEntity(result.rows[0]);
     } catch (error) {
       throw new Error(`Failed to fetch metrics config with promql_name ${promqlName}: ${error}`);
     }
@@ -76,7 +76,7 @@ export class MetricsConfigRepository {
       ];
 
       const result = await this.pool.query(query, values);
-      return result.rows[0];
+      return this.mapRowToEntity(result.rows[0]);
     } catch (error) {
       throw new Error(`Failed to create metrics config: ${error}`);
     }
@@ -136,7 +136,7 @@ export class MetricsConfigRepository {
         return null;
       }
 
-      return result.rows[0];
+      return this.mapRowToEntity(result.rows[0]);
     } catch (error) {
       throw new Error(`Failed to update metrics config with id ${id}: ${error}`);
     }
@@ -150,5 +150,22 @@ export class MetricsConfigRepository {
     } catch (error) {
       throw new Error(`Failed to delete metrics config with id ${id}: ${error}`);
     }
+  }
+
+  private mapRowToEntity(row: any): MetricsConfig {
+    const metricsConfig = new MetricsConfig();
+    metricsConfig.id = row.id;
+    metricsConfig.promql_name = row.promql_name;
+    metricsConfig.name = row.name;
+    metricsConfig.description = row.description;
+    metricsConfig.service_id = row.service_id;
+    metricsConfig.aggregation = row.aggregation;
+    metricsConfig.created_at = row.created_at ? new Date(row.created_at) : new Date();
+    metricsConfig.updated_at = row.updated_at ? new Date(row.updated_at) : new Date();
+    return metricsConfig;
+  }
+
+  private mapRowsToEntities(rows: any[]): MetricsConfig[] {
+    return rows.map(row => this.mapRowToEntity(row));
   }
 } 

@@ -65,33 +65,7 @@ export function demonstrateFrontendAPIs() {
   console.log(`
 🚀 Frontend API Usage Examples:
 
-1. Get Pages Hierarchy (WEEKLY as main, DAILY as children):
-   GET /api/pages?svc_id=1
-   
-   Response:
-   {
-     "success": true,
-     "data": {
-       "weekly": [
-         {
-           "id": 123,
-           "name": "WEEKLY_25-12-2023",
-           "children": [
-             {
-               "id": 124,
-               "name": "DAILY_25-12-2023"
-             },
-             {
-               "id": 125,
-               "name": "DAILY_26-12-2023"
-             }
-           ]
-         }
-       ]
-     }
-   }
-
-2. Get Page with Metrics Compilation:
+1. Get Page with Metrics Compilation:
    GET /api/page/123
    
    Response:
@@ -140,7 +114,7 @@ export function demonstrateFrontendAPIs() {
      }
    }
 
-3. Get All Services:
+2. Get All Services:
    GET /api/services
    
    Response:
@@ -169,7 +143,6 @@ export function demonstrateFrontendAPIs() {
    }
 
 📋 API Endpoints Summary:
-- GET /api/pages?svc_id={service_id} - Get pages hierarchy
 - GET /api/page/{page_id} - Get page with metrics compilation  
 - GET /api/services - Get all services with pages
 - POST /api/page - Create page and trigger metrics (existing)
@@ -177,8 +150,7 @@ export function demonstrateFrontendAPIs() {
 
 🎯 Frontend Use Cases:
 1. Service Selection Dropdown - Use /api/services
-2. Page Navigation Tree - Use /api/pages?svc_id={selected_service}
-3. Page Content Display - Use /api/page/{page_id} for metrics compilation
+2. Page Content Display - Use /api/page/{page_id} for metrics compilation
 
 📅 Date Format Notes:
 - Input: DD-MM-YYYY format (e.g., "25-12-2023")
@@ -200,10 +172,10 @@ export function demonstrateServiceSelectionFlow() {
 2. User selects a service (e.g., service_id: 1):
    → Store selected service_id in state
 
-3. Load Pages Hierarchy:
-   GET /api/pages?svc_id=1
-   → Display weekly pages as main items
-   → Display daily pages as children under each weekly page
+3. Load Pages by Service:
+   GET /api/page/1
+   → Display weekly pages with their associated daily files
+   → Each week shows the weekly summary and daily log files
 
 4. User clicks on a page (e.g., page_id: 123):
    → Navigate to page detail view
@@ -214,7 +186,7 @@ export function demonstrateServiceSelectionFlow() {
    → Display all metrics compilation for that page
 
 📊 Data Flow:
-Services → Pages Hierarchy → Page Details with Metrics
+Services → Pages by Service → Page Details with Metrics
   `);
 }
 
@@ -224,11 +196,13 @@ export function demonstrateErrorHandling() {
 ⚠️ Error Handling Examples:
 
 1. Invalid Service ID:
-   GET /api/pages?svc_id=invalid
+   GET /api/page/invalid
    Response: 400 Bad Request
    {
      "success": false,
-     "error": "svc_id query parameter is required and must be a number"
+     "response": {
+       "message": "Error"
+     }
    }
 
 2. Page Not Found:
@@ -239,12 +213,14 @@ export function demonstrateErrorHandling() {
      "error": "Page not found"
    }
 
-3. Missing Service ID:
-   GET /api/pages
+3. Service Not Found:
+   GET /api/page/999999
    Response: 400 Bad Request
    {
      "success": false,
-     "error": "svc_id query parameter is required and must be a number"
+     "response": {
+       "message": "Error"
+     }
    }
 
 4. Invalid Date Format:
@@ -260,7 +236,9 @@ export function demonstrateErrorHandling() {
    Response: 500 Internal Server Error
    {
      "success": false,
-     "error": "Internal server error"
+     "response": {
+       "message": "Error"
+     }
    }
   `);
 }

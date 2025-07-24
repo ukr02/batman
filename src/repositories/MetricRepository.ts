@@ -58,7 +58,7 @@ export class MetricRepository {
       }
 
       const result = await this.pool.query(query, values);
-      return result.rows;
+      return this.mapRowsToEntities(result.rows);
     } catch (error) {
       throw new Error(`Failed to fetch metrics: ${error}`);
     }
@@ -73,7 +73,7 @@ export class MetricRepository {
         return null;
       }
 
-      return result.rows[0];
+      return this.mapRowToEntity(result.rows[0]);
     } catch (error) {
       throw new Error(`Failed to fetch metric with id ${id}: ${error}`);
     }
@@ -99,7 +99,7 @@ export class MetricRepository {
       ];
       
       const result = await this.pool.query(query, values);
-      return result.rows[0];
+      return this.mapRowToEntity(result.rows[0]);
     } catch (error) {
       throw new Error(`Failed to create metric: ${error}`);
     }
@@ -183,7 +183,7 @@ export class MetricRepository {
         return null;
       }
 
-      return result.rows[0];
+      return this.mapRowToEntity(result.rows[0]);
     } catch (error) {
       throw new Error(`Failed to update metric with id ${id}: ${error}`);
     }
@@ -215,9 +215,31 @@ export class MetricRepository {
       
       const values = [date, ...configIds];
       const result = await this.pool.query(query, values);
-      return result.rows;
+      return this.mapRowsToEntities(result.rows);
     } catch (error) {
       throw new Error(`Failed to fetch metrics for config IDs and date: ${error}`);
     }
+  }
+
+  private mapRowToEntity(row: any): Metric {
+    const metric = new Metric();
+    metric.id = row.id;
+    metric.metrics_config_id = row.metrics_config_id;
+    metric.name = row.name;
+    // Ensure date is properly converted to number (epoch)
+    metric.date = row.date ? Number(row.date) : undefined;
+    metric.state = row.state;
+    metric.image_url = row.image_url;
+    metric.summary_text = row.summary_text;
+    metric.comment = row.comment;
+    metric.value = row.value ? Number(row.value) : undefined;
+    metric.criticalityScore = row.criticalityScore ? Number(row.criticalityScore) : undefined;
+    metric.created_at = row.created_at ? new Date(row.created_at) : new Date();
+    metric.updated_at = row.updated_at ? new Date(row.updated_at) : new Date();
+    return metric;
+  }
+
+  private mapRowsToEntities(rows: any[]): Metric[] {
+    return rows.map(row => this.mapRowToEntity(row));
   }
 } 

@@ -12,11 +12,7 @@ export class UserRepository {
     try {
       const query = 'SELECT * FROM users ORDER BY created_at DESC';
       const result = await this.pool.query(query);
-      return result.rows.map(row => ({
-        ...row,
-        created_at: row.created_at ? new Date(row.created_at) : undefined,
-        updated_at: row.updated_at ? new Date(row.updated_at) : undefined
-      }));
+      return this.mapRowsToEntities(result.rows);
     } catch (error) {
       throw new Error(`Failed to fetch users: ${error}`);
     }
@@ -31,12 +27,7 @@ export class UserRepository {
         return null;
       }
 
-      const row = result.rows[0];
-      return {
-        ...row,
-        created_at: row.created_at ? new Date(row.created_at) : undefined,
-        updated_at: row.updated_at ? new Date(row.updated_at) : undefined
-      };
+      return this.mapRowToEntity(result.rows[0]);
     } catch (error) {
       throw new Error(`Failed to fetch user with id ${id}: ${error}`);
     }
@@ -51,12 +42,7 @@ export class UserRepository {
         return null;
       }
 
-      const row = result.rows[0];
-      return {
-        ...row,
-        created_at: row.created_at ? new Date(row.created_at) : undefined,
-        updated_at: row.updated_at ? new Date(row.updated_at) : undefined
-      };
+      return this.mapRowToEntity(result.rows[0]);
     } catch (error) {
       throw new Error(`Failed to fetch user with email ${email}: ${error}`);
     }
@@ -72,12 +58,7 @@ export class UserRepository {
       const values = [userData.name, userData.email];
       const result = await this.pool.query(query, values);
       
-      const row = result.rows[0];
-      return {
-        ...row,
-        created_at: row.created_at ? new Date(row.created_at) : undefined,
-        updated_at: row.updated_at ? new Date(row.updated_at) : undefined
-      };
+      return this.mapRowToEntity(result.rows[0]);
     } catch (error) {
       if (error instanceof Error && error.message.includes('duplicate key')) {
         throw new Error('Email already exists');
@@ -120,12 +101,7 @@ export class UserRepository {
         return null;
       }
 
-      const row = result.rows[0];
-      return {
-        ...row,
-        created_at: row.created_at ? new Date(row.created_at) : undefined,
-        updated_at: row.updated_at ? new Date(row.updated_at) : undefined
-      };
+      return this.mapRowToEntity(result.rows[0]);
     } catch (error) {
       if (error instanceof Error && error.message.includes('duplicate key')) {
         throw new Error('Email already exists');
@@ -138,9 +114,23 @@ export class UserRepository {
     try {
       const query = 'DELETE FROM users WHERE id = $1';
       const result = await this.pool.query(query, [id]);
-      return result.rowCount > 0;
+      return result.rowCount ? result.rowCount > 0 : false;
     } catch (error) {
       throw new Error(`Failed to delete user with id ${id}: ${error}`);
     }
+  }
+
+  private mapRowToEntity(row: any): User {
+    return {
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      created_at: row.created_at ? new Date(row.created_at) : undefined,
+      updated_at: row.updated_at ? new Date(row.updated_at) : undefined
+    };
+  }
+
+  private mapRowsToEntities(rows: any[]): User[] {
+    return rows.map(row => this.mapRowToEntity(row));
   }
 } 

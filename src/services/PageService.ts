@@ -66,43 +66,123 @@ export class PageService {
      */
     async findByServiceId(serviceId: number): Promise<PageDto[]> {
         const pages = await this.pageRepository.findByServiceId(serviceId);
+        console.log("dailyPages date type", pages[0].date, typeof pages[0].date);
         return pages.map(PageMapper.fromEntityToDto);
     }
 
     /**
-     * Get pages hierarchy (WEEKLY as main, DAILY as children)
+     * Get pages by service ID in API format
      */
-    async getPagesHierarchy(serviceId: number): Promise<{
-        weekly: Array<{ id: number; name: string; children: Array<{ id: number; name: string }> }>;
+    async getPagesByServiceForAPI(serviceId: number): Promise<Array<{
+        id: number;
+        weekStart: string;
+        weekEnd: string;
+        title: string;
+        weeklyFile: {
+            id: number;
+            name: string;
+            date: string;
+        };
+        files: Array<{
+            id: number;
+            name: string;
+            date: string;
+        }>;
+    }>> {
+        const pages = await this.findByServiceId(serviceId);
+        
+        // Group pages by type
+        const weeklyPages = pages.filter(page => page.type === 'WEEKLY');
+        const dailyPages = pages.filter(page => page.type === 'DAILY');
+        
+        // If no weekly pages exist, create week structures based on daily pages
+        if (weeklyPages.length === 0 && dailyPages.length > 0) {
+            return this.createWeekStructuresFromDailyPages(dailyPages);
+        }
+        
+        // If no daily pages exist, return empty array
+        return [];
+    }
+
+    /**
+     * Create week structures based on daily pages when no weekly pages exist
+     */
+    private createWeekStructuresFromDailyPages(dailyPages: PageDto[]): Array<{
+        id: number;
+        weekStart: string;
+        weekEnd: string;
+        title: string;
+        weeklyFile: {
+            id: number;
+            name: string;
+            date: string;
+        };
+        files: Array<{
+            id: number;
+            name: string;
+            date: string;
+        }>;
     }> {
-        try {
-            const allPages = await this.pageRepository.findByServiceId(serviceId);
+        // Group daily pages by week (Monday to Sunday)
+        const weekGroups = new Map<string, PageDto[]>();
+        
+        dailyPages.forEach(dailyPage => {
+            if (!dailyPage.date) return;
             
-            // Group pages by type
-            const weeklyPages = allPages.filter(page => page.type === 'WEEKLY');
-            const dailyPages = allPages.filter(page => page.type === 'DAILY');
+            const dailyDate = new Date(dailyPage.date);
+            // Find the Monday of this week
+            const dayOfWeek = dailyDate.getDay();
+            const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Sunday becomes Monday of next week
+            const monday = new Date(dailyDate);
+            monday.setDate(dailyDate.getDate() - daysToMonday);
             
-            // Create hierarchy structure
-            const hierarchy = weeklyPages.map(weeklyPage => {
-                // For now, we'll include all daily pages as children
-                // In a more sophisticated implementation, you might want to group by week
-                const children = dailyPages.map(dailyPage => ({
-                    id: dailyPage.id,
-                    name: dailyPage.name
-                }));
+            const weekKey = monday.toISOString().split('T')[0];
+            
+            if (!weekGroups.has(weekKey)) {
+                weekGroups.set(weekKey, []);
+            }
+            weekGroups.get(weekKey)!.push(dailyPage);
+        });
+        
+        // Convert week groups to the required format
+        const weeks = Array.from(weekGroups.entries()).map(([weekStartStr, weekDailyPages], index) => {
+            const weekStart = new Date(weekStartStr);
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6); // Sunday
+            
+            const weekEndStr = weekEnd.toISOString().split('T')[0];
+            
+            // Convert daily pages to file format
+            const files = weekDailyPages.map(dailyPage => {
+                const dailyDate = new Date(dailyPage.date!);
+                const fileDateStr = dailyDate.toISOString().split('T')[0];
                 
                 return {
-                    id: weeklyPage.id,
-                    name: weeklyPage.name,
-                    children
+                    id: dailyPage.id,
+                    name: dailyPage.name, // Use original page name instead of date-based format
+                    date: fileDateStr
                 };
             });
             
-            return { weekly: hierarchy };
-        } catch (error) {
-            console.error('[PageService] Error getting pages hierarchy:', error);
-            throw new Error(`Failed to get pages hierarchy: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        }
+            // Generate weekly file (using a generated ID since no weekly page exists)
+            const weeklyFile = {
+                id: 10000 + index, // Generated ID for non-existent weekly page
+                name: `week_summary_${weekStartStr.replace(/-/g, '_')}-${weekEndStr.split('-').slice(1).join('-')}.log`,
+                date: weekEndStr
+            };
+            
+            return {
+                id: 10000 + index, // Generated ID for the week structure
+                weekStart: weekStartStr,
+                weekEnd: weekEndStr,
+                title: `Week ${index + 1} - ${weekStartStr.split('-').slice(1).join('/')}-${weekEndStr.split('-').slice(1).join('/')}`,
+                weeklyFile: weeklyFile,
+                files: files
+            };
+        });
+        
+        // Sort weeks by start date
+        return weeks.sort((a, b) => a.weekStart.localeCompare(b.weekStart));
     }
 
     /**
