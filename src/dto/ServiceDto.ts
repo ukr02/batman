@@ -1,6 +1,8 @@
 export interface ServiceDto {
     id: number;
     service_name: string;
+    created_at: Date;
+    updated_at: Date;
 }
 
 export interface CreateServiceDto {

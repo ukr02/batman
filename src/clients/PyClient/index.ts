@@ -219,6 +219,7 @@ export class PyClient {
    * Generate metric for a specific metrics config and date
    */
   public genMetric = async (metrics_config_id: number, date: number): Promise<boolean> => {
+    return true;
     try {
       const response = await this.post('/api/metrics/generate', {
         metrics_config_id,

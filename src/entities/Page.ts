@@ -1,9 +1,16 @@
 import { Column, Entity, Index, PrimaryGeneratedColumn } from "typeorm";
 
+export enum PageType {
+    DAILY = "DAILY",
+    WEEKLY = "WEEKLY"
+}
+
 @Entity("pages")
 @Index(["service_id"])
 @Index(["parent_id"])
 @Index(["type"])
+@Index(["created_at"])
+@Index(["updated_at"])
 export class Page {
     @PrimaryGeneratedColumn({ type: "integer" })
     id!: number;
@@ -31,90 +38,10 @@ export class Page {
 
     @Column({ type: "text", nullable: true })
     annotations?: string;
-}
 
-// DTOs for API requests/responses
-export interface PageDto {
-    id: number;
-    service_id: number;
-    name: string;
-    type: string;
-    parent_id?: number;
-    heading?: string;
-    date?: number;
-    summary?: string;
-    annotations?: string;
-}
+    @Column({ type: "timestamp with time zone", default: () => "CURRENT_TIMESTAMP" })
+    created_at!: Date;
 
-export interface CreatePageDto {
-    service_id: number;
-    name: string;
-    type: string;
-    parent_id?: number;
-    heading?: string;
-    date?: number;
-    summary?: string;
-    annotations?: string;
-}
-
-export interface UpdatePageDto {
-    service_id?: number;
-    name?: string;
-    type?: string;
-    parent_id?: number;
-    heading?: string;
-    date?: number;
-    summary?: string;
-    annotations?: string;
-}
-
-export interface PageFilterDto {
-    service_id?: number;
-    type?: string;
-    parent_id?: number;
-    limit?: number;
-    offset?: number;
-}
-
-// Mapper for entity-DTO conversion
-export class PageMapper {
-    static fromEntityToDto(entity: Page): PageDto {
-        return {
-            id: entity.id,
-            service_id: entity.service_id,
-            name: entity.name,
-            type: entity.type,
-            parent_id: entity.parent_id,
-            heading: entity.heading,
-            date: entity.date,
-            summary: entity.summary,
-            annotations: entity.annotations
-        };
-    }
-
-    static fromDtoToEntity(dto: CreatePageDto): Partial<Page> {
-        return {
-            service_id: dto.service_id,
-            name: dto.name,
-            type: dto.type,
-            parent_id: dto.parent_id,
-            heading: dto.heading,
-            date: dto.date,
-            summary: dto.summary,
-            annotations: dto.annotations
-        };
-    }
-
-    static fromUpdateDtoToEntity(dto: UpdatePageDto): Partial<Page> {
-        const entity: Partial<Page> = {};
-        if (dto.service_id !== undefined) entity.service_id = dto.service_id;
-        if (dto.name !== undefined) entity.name = dto.name;
-        if (dto.type !== undefined) entity.type = dto.type;
-        if (dto.parent_id !== undefined) entity.parent_id = dto.parent_id;
-        if (dto.heading !== undefined) entity.heading = dto.heading;
-        if (dto.date !== undefined) entity.date = dto.date;
-        if (dto.summary !== undefined) entity.summary = dto.summary;
-        if (dto.annotations !== undefined) entity.annotations = dto.annotations;
-        return entity;
-    }
+    @Column({ type: "timestamp with time zone", default: () => "CURRENT_TIMESTAMP" })
+    updated_at!: Date;
 } 

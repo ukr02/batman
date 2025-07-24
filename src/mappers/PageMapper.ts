@@ -1,5 +1,6 @@
 import { Page } from "../entities/Page";
-import { PageDto, CreatePageDto, UpdatePageDto } from "../dto/PageDto";
+import { PageDto, CreatePageDto } from "../dto/PageDto";
+import { PageType } from "../entities/Page";
 
 export class PageMapper {
     static fromEntityToDto(entity: Page): PageDto {
@@ -12,33 +13,31 @@ export class PageMapper {
             heading: entity.heading,
             date: entity.date,
             summary: entity.summary,
-            annotations: entity.annotations
+            annotations: entity.annotations,
+            created_at: entity.created_at,
+            updated_at: entity.updated_at
         };
     }
 
     static fromDtoToEntity(dto: CreatePageDto): Partial<Page> {
+        const name = `${dto.type}_${dto.date}`;
+        
+        // Convert DD-MM-YYYY format to epoch (start of IST date)
+        const dateParts = dto.date.split('-');
+        const day = parseInt(dateParts[0], 10);
+        const month = parseInt(dateParts[1], 10) - 1; // Month is 0-indexed
+        const year = parseInt(dateParts[2], 10);
+        
+        // Create date in IST (UTC+5:30) and get start of day
+        const istDate = new Date(year, month, day, 0, 0, 0, 0);
+        // Convert to UTC epoch (subtract 5:30 hours for IST to UTC)
+        const epoch = istDate.getTime() - (5.5 * 60 * 60 * 1000);
+        
         return {
-            service_id: dto.service_id,
-            name: dto.name,
+            service_id: dto.svc_id,
+            name: name,
             type: dto.type,
-            parent_id: dto.parent_id,
-            heading: dto.heading,
-            date: dto.date,
-            summary: dto.summary,
-            annotations: dto.annotations
+            date: epoch
         };
-    }
-
-    static fromUpdateDtoToEntity(dto: UpdatePageDto): Partial<Page> {
-        const entity: Partial<Page> = {};
-        if (dto.service_id !== undefined) entity.service_id = dto.service_id;
-        if (dto.name !== undefined) entity.name = dto.name;
-        if (dto.type !== undefined) entity.type = dto.type;
-        if (dto.parent_id !== undefined) entity.parent_id = dto.parent_id;
-        if (dto.heading !== undefined) entity.heading = dto.heading;
-        if (dto.date !== undefined) entity.date = dto.date;
-        if (dto.summary !== undefined) entity.summary = dto.summary;
-        if (dto.annotations !== undefined) entity.annotations = dto.annotations;
-        return entity;
     }
 } 

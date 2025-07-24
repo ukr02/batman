@@ -12,7 +12,7 @@ export class MetricService {
         private metricsConfigRepository: MetricsConfigRepository
     ) {}
 
-    async generateMetricsForDate(date: number): Promise<{ success: boolean; results: Array<{ config_id: number; success: boolean; error?: string }> }> {
+    async generateMetricsForDate(date: number): Promise<{ success: boolean; results: Array<{ config_id: number; success: boolean; error?: string }>; error?: string }> {
         try {
             const metricConfigs = await this.metricsConfigRepository.findAll();
             
@@ -56,7 +56,7 @@ export class MetricService {
         }
     }
 
-    async generateMetricsForService(serviceId: number, date: number): Promise<{ success: boolean; results: Array<{ config_id: number; success: boolean; error?: string }> }> {
+    async generateMetricsForService(serviceId: number, date: number): Promise<{ success: boolean; results: Array<{ config_id: number; success: boolean; error?: string }>; error?: string }> {
         try {
             const metricConfigs = await this.metricsConfigRepository.findByServiceId(serviceId);
             
@@ -100,6 +100,61 @@ export class MetricService {
         }
     }
 
+    async generateMetricsForServices(serviceIds: number[], date: number): Promise<{ success: boolean; results: Array<{ service_id: number; config_id: number; success: boolean; error?: string }>; error?: string }> {
+        try {
+            console.log(`[MetricService] Generating metrics for services: ${serviceIds.join(', ')} for date ${date}`);
+
+            const allPromises: Promise<{ service_id: number; config_id: number; success: boolean; error?: string }>[] = [];
+
+            for (const serviceId of serviceIds) {
+                try {
+                    const metricConfigs = await this.metricsConfigRepository.findByServiceId(serviceId);
+                    
+                    for (const config of metricConfigs) {
+                        const promise = pyClient.genMetric(config.id, date)
+                            .then(success => ({
+                                service_id: serviceId,
+                                config_id: config.id,
+                                success,
+                                error: success ? undefined : "API call failed"
+                            }))
+                            .catch(error => ({
+                                service_id: serviceId,
+                                config_id: config.id,
+                                success: false,
+                                error: error instanceof Error ? error.message : "Unknown error"
+                            }));
+                        
+                        allPromises.push(promise);
+                    }
+                } catch (error) {
+                    console.error(`[MetricService] Error fetching configs for service ${serviceId}:`, error);
+                    allPromises.push(Promise.resolve({
+                        service_id: serviceId,
+                        config_id: 0,
+                        success: false,
+                        error: `Failed to fetch configs for service ${serviceId}`
+                    }));
+                }
+            }
+
+            const results = await Promise.all(allPromises);
+            const allSuccessful = results.every(result => result.success);
+            
+            console.log(`[MetricService] Metric generation for services completed. Success: ${allSuccessful}, Total results: ${results.length}`);
+
+            return { success: allSuccessful, results };
+
+        } catch (error) {
+            console.error('[MetricService] Error generating metrics for services:', error);
+            return {
+                success: false,
+                results: [],
+                error: error instanceof Error ? error.message : "Unknown error"
+            };
+        }
+    }
+
     async findAll(filter?: MetricFilterDto): Promise<MetricDto[]> {
         const metrics = await this.metricRepository.findAll(filter);
         return metrics.map(MetricMapper.fromEntityToDto);
@@ -121,6 +176,40 @@ export class MetricService {
     }
 
     async delete(id: number): Promise<boolean> {
-        return await this.metricRepository.delete(id);
+        const result = await this.metricRepository.delete(id);
+        return result;
+    }
+
+    /**
+     * Find metrics by service ID and date
+     */
+    async findByServiceAndDate(serviceId: number, date: number): Promise<Array<{
+        id: number;
+        metrics_config_id: number;
+        name?: string;
+        date?: number;
+        state?: string;
+        image_url?: string;
+        summary_text?: string;
+        comment?: string;
+        value?: number;
+        criticalityScore?: number;
+    }>> {
+        try {
+            // Get all metric configs for the service
+            const metricConfigs = await this.metricsConfigRepository.findByServiceId(serviceId);
+            const configIds = metricConfigs.map(config => config.id);
+            
+            if (configIds.length === 0) {
+                return [];
+            }
+            
+            // Get metrics for these configs and the specific date
+            const metrics = await this.metricRepository.findByConfigIdsAndDate(configIds, date);
+            return metrics;
+        } catch (error) {
+            console.error(`[MetricService] Error finding metrics for service ${serviceId} and date ${date}:`, error);
+            throw new Error(`Failed to find metrics: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
     }
 } 

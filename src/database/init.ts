@@ -49,8 +49,4 @@ export class DatabaseInitializer {
       throw error;
     }
   }
-
-  async close(): Promise<void> {
-    await this.pool.end();
-  }
 } 

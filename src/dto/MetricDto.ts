@@ -9,6 +9,8 @@ export interface MetricDto {
     comment?: string;
     value?: number;
     criticalityScore?: number;
+    created_at: Date;
+    updated_at: Date;
 }
 
 export interface CreateMetricDto {

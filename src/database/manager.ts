@@ -30,7 +30,6 @@ export class DatabaseManager {
   }
 
   public async close(): Promise<void> {
-    await this.initializer.close();
     await this.dbConnection.closeConnection();
   }
 } 

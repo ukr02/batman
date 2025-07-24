@@ -2,6 +2,8 @@ export interface ActionItemDto {
     id: number;
     jira_link?: string;
     metric_id: number;
+    created_at: Date;
+    updated_at: Date;
 }
 
 export interface CreateActionItemDto {

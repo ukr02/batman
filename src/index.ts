@@ -4,7 +4,7 @@ export { DatabaseConnection } from './database/connection/connection';
 
 // Entity exports
 export { Service } from './entities/Service';
-export { Page } from './entities/Page';
+export { Page, PageType } from './entities/Page';
 export { MetricsConfig } from './entities/MetricsConfig';
 export { Metric } from './entities/Metric';
 export { ActionItem } from './entities/ActionItem';
@@ -24,7 +24,7 @@ export { MetricMapper } from './mappers/MetricMapper';
 export { ActionItemMapper } from './mappers/ActionItemMapper';
 
 // Repository exports
-export { PageRepository, IPageRepository } from './repositories/PageRepository';
+export { PageRepository } from './repositories/PageRepository';
 export { UserRepository } from './repositories/UserRepository';
 export { ProductRepository } from './repositories/ProductRepository';
 

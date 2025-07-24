@@ -6,6 +6,9 @@ import path from 'path';
 import { userRoutes } from '../routes/userRoutes';
 import { productRoutes } from '../routes/productRoutes';
 import { metricRoutes } from '../routes/metricRoutes';
+import { pageRoutes } from '../routes/pageRoutes';
+import { serviceRoutes } from '../routes/serviceRoutes';
+import { metricsConfigRoutes } from '../routes/metricsConfigRoutes';
 
 export class App {
   public app: express.Application;
@@ -55,6 +58,9 @@ export class App {
     this.app.use('/api/users', userRoutes);
     this.app.use('/api/products', productRoutes);
     this.app.use('/api/metrics', metricRoutes);
+    this.app.use('/api/page', pageRoutes);
+    this.app.use('/api/service', serviceRoutes);
+    this.app.use('/api/metric_config', metricsConfigRoutes);
   }
 
   private initializeErrorHandling(): void {

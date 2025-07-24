@@ -44,7 +44,7 @@ export class MetricRepository {
         query += ' WHERE ' + conditions.join(' AND ');
       }
 
-      query += ' ORDER BY date DESC';
+      query += ' ORDER BY created_at DESC';
 
       if (filter?.limit) {
         query += ` LIMIT $${paramIndex}`;
@@ -196,6 +196,28 @@ export class MetricRepository {
       return result.rowCount !== 0;
     } catch (error) {
       throw new Error(`Failed to delete metric with id ${id}: ${error}`);
+    }
+  }
+
+  async findByConfigIdsAndDate(configIds: number[], date: number): Promise<Metric[]> {
+    try {
+      if (configIds.length === 0) {
+        return [];
+      }
+
+      const placeholders = configIds.map((_, index) => `$${index + 2}`).join(',');
+      const query = `
+        SELECT * FROM metrics 
+        WHERE metrics_config_id IN (${placeholders}) 
+        AND date = $1 
+        ORDER BY created_at DESC
+      `;
+      
+      const values = [date, ...configIds];
+      const result = await this.pool.query(query, values);
+      return result.rows;
+    } catch (error) {
+      throw new Error(`Failed to fetch metrics for config IDs and date: ${error}`);
     }
   }
 } 

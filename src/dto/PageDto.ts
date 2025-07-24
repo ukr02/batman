@@ -1,3 +1,5 @@
+import { PageType } from "../entities/Page";
+
 export interface PageDto {
     id: number;
     service_id: number;
@@ -8,17 +10,14 @@ export interface PageDto {
     date?: number;
     summary?: string;
     annotations?: string;
+    created_at: Date;
+    updated_at: Date;
 }
 
 export interface CreatePageDto {
-    service_id: number;
-    name: string;
-    type: string;
-    parent_id?: number;
-    heading?: string;
-    date?: number;
-    summary?: string;
-    annotations?: string;
+    type: PageType;
+    date: string; // DD-MM-YYYY format
+    svc_id: number; // service_id
 }
 
 export interface UpdatePageDto {
@@ -33,9 +32,8 @@ export interface UpdatePageDto {
 }
 
 export interface PageFilterDto {
-    service_id?: number;
-    type?: string;
-    parent_id?: number;
+    svc_id?: number; // service_id
+    type?: PageType;
     limit?: number;
     offset?: number;
 } 
