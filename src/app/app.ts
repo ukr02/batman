@@ -3,12 +3,12 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import path from 'path';
-import { userRoutes } from '../routes/userRoutes';
-import { productRoutes } from '../routes/productRoutes';
-import { metricRoutes } from '../routes/metricRoutes';
-import { pageRoutes } from '../routes/pageRoutes';
-import { serviceRoutes } from '../routes/serviceRoutes';
-import { metricsConfigRoutes } from '../routes/metricsConfigRoutes';
+import { createUserRoutes } from '../routes/userRoutes';
+import { createProductRoutes } from '../routes/productRoutes';
+import { createMetricRoutes } from '../routes/metricRoutes';
+import { createPageRoutes } from '../routes/pageRoutes';
+import { createServiceRoutes } from '../routes/serviceRoutes';
+import { createMetricsConfigRoutes } from '../routes/metricsConfigRoutes';
 
 export class App {
   public app: express.Application;
@@ -41,12 +41,7 @@ export class App {
   private initializeRoutes(): void {
     // Health check endpoint
     this.app.get('/health', (req, res) => {
-      res.json({ 
-        status: 'OK', 
-        timestamp: new Date().toISOString(),
-        service: 'Batman API',
-        version: '1.0.0'
-      });
+      res.send('i am batman');
     });
 
     // Serve the main HTML page
@@ -54,13 +49,13 @@ export class App {
       res.sendFile(path.join(__dirname, '../../public/index.html'));
     });
 
-    // API Routes
-    this.app.use('/api/users', userRoutes);
-    this.app.use('/api/products', productRoutes);
-    this.app.use('/api/metrics', metricRoutes);
-    this.app.use('/api/page', pageRoutes);
-    this.app.use('/api/service', serviceRoutes);
-    this.app.use('/api/metric_config', metricsConfigRoutes);
+    // API Routes - Create routes using factory functions
+    this.app.use('/api/users', createUserRoutes());
+    this.app.use('/api/products', createProductRoutes());
+    this.app.use('/api/metrics', createMetricRoutes());
+    this.app.use('/api/page', createPageRoutes());
+    this.app.use('/api/service', createServiceRoutes());
+    this.app.use('/api/metric_config', createMetricsConfigRoutes());
   }
 
   private initializeErrorHandling(): void {

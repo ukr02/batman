@@ -1,41 +1,28 @@
-import { Pool } from 'pg';
+import { Repository, Like } from 'typeorm';
 import { Service } from '../entities/Service';
 import { CreateServiceDto, UpdateServiceDto, ServiceFilterDto } from '../dto/ServiceDto';
 
 export class ServiceRepository {
-    private pool: Pool;
+    private repository: Repository<Service>;
 
-    constructor(pool: Pool) {
-        this.pool = pool;
+    constructor(repository: Repository<Service>) {
+        this.repository = repository;
     }
 
     async findAll(filter?: ServiceFilterDto): Promise<Service[]> {
         try {
-            let query = 'SELECT * FROM services';
-            const values: any[] = [];
-            let paramIndex = 1;
-
+            const whereConditions: any = {};
+            
             if (filter?.service_name) {
-                query += ` WHERE service_name ILIKE $${paramIndex}`;
-                values.push(`%${filter.service_name}%`);
-                paramIndex++;
+                whereConditions.service_name = Like(`%${filter.service_name}%`);
             }
 
-            query += ' ORDER BY created_at DESC';
-
-            if (filter?.limit) {
-                query += ` LIMIT $${paramIndex}`;
-                values.push(filter.limit);
-                paramIndex++;
-            }
-
-            if (filter?.offset) {
-                query += ` OFFSET $${paramIndex}`;
-                values.push(filter.offset);
-            }
-
-            const result = await this.pool.query(query, values);
-            return this.mapRowsToEntities(result.rows);
+            return await this.repository.find({
+                where: Object.keys(whereConditions).length > 0 ? whereConditions : undefined,
+                order: { created_at: 'DESC' },
+                skip: filter?.offset,
+                take: filter?.limit
+            });
         } catch (error) {
             throw new Error(`Failed to fetch services: ${error}`);
         }
@@ -43,14 +30,7 @@ export class ServiceRepository {
 
     async findById(id: number): Promise<Service | null> {
         try {
-            const query = 'SELECT * FROM services WHERE id = $1';
-            const result = await this.pool.query(query, [id]);
-            
-            if (result.rows.length === 0) {
-                return null;
-            }
-
-            return this.mapRowToEntity(result.rows[0]);
+            return await this.repository.findOne({ where: { id } });
         } catch (error) {
             throw new Error(`Failed to fetch service with id ${id}: ${error}`);
         }
@@ -58,14 +38,7 @@ export class ServiceRepository {
 
     async findByServiceName(serviceName: string): Promise<Service | null> {
         try {
-            const query = 'SELECT * FROM services WHERE service_name = $1';
-            const result = await this.pool.query(query, [serviceName]);
-            
-            if (result.rows.length === 0) {
-                return null;
-            }
-
-            return this.mapRowToEntity(result.rows[0]);
+            return await this.repository.findOne({ where: { service_name: serviceName } });
         } catch (error) {
             throw new Error(`Failed to fetch service with name ${serviceName}: ${error}`);
         }
@@ -73,14 +46,10 @@ export class ServiceRepository {
 
     async create(createServiceDto: CreateServiceDto): Promise<Service> {
         try {
-            const query = `
-                INSERT INTO services (service_name, created_at, updated_at)
-                VALUES ($1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                RETURNING *
-            `;
-            
-            const result = await this.pool.query(query, [createServiceDto.service_name]);
-            return this.mapRowToEntity(result.rows[0]);
+            const service = this.repository.create({
+                service_name: createServiceDto.service_name
+            });
+            return await this.repository.save(service);
         } catch (error) {
             if (error instanceof Error && error.message.includes('duplicate key')) {
                 throw new Error(`Service with name '${createServiceDto.service_name}' already exists`);
@@ -91,38 +60,18 @@ export class ServiceRepository {
 
     async update(id: number, updateServiceDto: UpdateServiceDto): Promise<Service | null> {
         try {
-            const updateFields: string[] = [];
-            const values: any[] = [];
-            let paramIndex = 1;
-
+            const updateData: Partial<Service> = {};
+            
             if (updateServiceDto.service_name !== undefined) {
-                updateFields.push(`service_name = $${paramIndex++}`);
-                values.push(updateServiceDto.service_name);
+                updateData.service_name = updateServiceDto.service_name;
             }
 
-            // Always update the updated_at timestamp
-            updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
-
-            if (updateFields.length === 0) {
-                // No fields to update, just return the existing record
+            if (Object.keys(updateData).length === 0) {
                 return await this.findById(id);
             }
 
-            values.push(id);
-            const query = `
-                UPDATE services 
-                SET ${updateFields.join(', ')}
-                WHERE id = $${paramIndex}
-                RETURNING *
-            `;
-
-            const result = await this.pool.query(query, values);
-            
-            if (result.rows.length === 0) {
-                return null;
-            }
-
-            return this.mapRowToEntity(result.rows[0]);
+            await this.repository.update(id, updateData);
+            return await this.findById(id);
         } catch (error) {
             if (error instanceof Error && error.message.includes('duplicate key')) {
                 throw new Error(`Service with name '${updateServiceDto.service_name}' already exists`);
@@ -133,9 +82,8 @@ export class ServiceRepository {
 
     async delete(id: number): Promise<boolean> {
         try {
-            const query = 'DELETE FROM services WHERE id = $1';
-            const result = await this.pool.query(query, [id]);
-            return result.rowCount ? result.rowCount > 0 : false;
+            const result = await this.repository.delete(id);
+            return result.affected ? result.affected > 0 : false;
         } catch (error) {
             throw new Error(`Failed to delete service with id ${id}: ${error}`);
         }
@@ -143,32 +91,17 @@ export class ServiceRepository {
 
     async count(filter?: ServiceFilterDto): Promise<number> {
         try {
-            let query = 'SELECT COUNT(*) FROM services';
-            const values: any[] = [];
-            let paramIndex = 1;
-
+            const whereConditions: any = {};
+            
             if (filter?.service_name) {
-                query += ` WHERE service_name ILIKE $${paramIndex}`;
-                values.push(`%${filter.service_name}%`);
+                whereConditions.service_name = Like(`%${filter.service_name}%`);
             }
 
-            const result = await this.pool.query(query, values);
-            return parseInt(result.rows[0].count);
+            return await this.repository.count({
+                where: Object.keys(whereConditions).length > 0 ? whereConditions : undefined
+            });
         } catch (error) {
             throw new Error(`Failed to count services: ${error}`);
         }
-    }
-
-    private mapRowToEntity(row: any): Service {
-        const service = new Service();
-        service.id = row.id;
-        service.service_name = row.service_name;
-        service.created_at = row.created_at ? new Date(row.created_at) : new Date();
-        service.updated_at = row.updated_at ? new Date(row.updated_at) : new Date();
-        return service;
-    }
-
-    private mapRowsToEntities(rows: any[]): Service[] {
-        return rows.map(row => this.mapRowToEntity(row));
     }
 } 

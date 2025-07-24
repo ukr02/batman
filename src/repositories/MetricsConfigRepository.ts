@@ -1,19 +1,19 @@
-import { Pool } from 'pg';
+import { Repository } from 'typeorm';
 import { MetricsConfig } from '../entities/MetricsConfig';
 import { CreateMetricsConfigDto, UpdateMetricsConfigDto } from '../dto/MetricsConfigDto';
 
 export class MetricsConfigRepository {
-  private pool: Pool;
+  private repository: Repository<MetricsConfig>;
 
-  constructor(pool: Pool) {
-    this.pool = pool;
+  constructor(repository: Repository<MetricsConfig>) {
+    this.repository = repository;
   }
 
   async findAll(): Promise<MetricsConfig[]> {
     try {
-      const query = 'SELECT * FROM metrics_config ORDER BY created_at DESC';
-      const result = await this.pool.query(query);
-      return this.mapRowsToEntities(result.rows);
+      return await this.repository.find({
+        order: { created_at: 'DESC' }
+      });
     } catch (error) {
       throw new Error(`Failed to fetch metrics configs: ${error}`);
     }
@@ -21,14 +21,7 @@ export class MetricsConfigRepository {
 
   async findById(id: number): Promise<MetricsConfig | null> {
     try {
-      const query = 'SELECT * FROM metrics_config WHERE id = $1';
-      const result = await this.pool.query(query, [id]);
-      
-      if (result.rows.length === 0) {
-        return null;
-      }
-
-      return this.mapRowToEntity(result.rows[0]);
+      return await this.repository.findOne({ where: { id } });
     } catch (error) {
       throw new Error(`Failed to fetch metrics config with id ${id}: ${error}`);
     }
@@ -36,9 +29,10 @@ export class MetricsConfigRepository {
 
   async findByServiceId(serviceId: number): Promise<MetricsConfig[]> {
     try {
-      const query = 'SELECT * FROM metrics_config WHERE service_id = $1 ORDER BY created_at DESC';
-      const result = await this.pool.query(query, [serviceId]);
-      return this.mapRowsToEntities(result.rows);
+      return await this.repository.find({
+        where: { service_id: serviceId },
+        order: { created_at: 'DESC' }
+      });
     } catch (error) {
       throw new Error(`Failed to fetch metrics configs for service ${serviceId}: ${error}`);
     }
@@ -46,14 +40,7 @@ export class MetricsConfigRepository {
 
   async findByPromqlName(promqlName: string): Promise<MetricsConfig | null> {
     try {
-      const query = 'SELECT * FROM metrics_config WHERE promql_name = $1';
-      const result = await this.pool.query(query, [promqlName]);
-      
-      if (result.rows.length === 0) {
-        return null;
-      }
-
-      return this.mapRowToEntity(result.rows[0]);
+      return await this.repository.findOne({ where: { promql_name: promqlName } });
     } catch (error) {
       throw new Error(`Failed to fetch metrics config with promql_name ${promqlName}: ${error}`);
     }
@@ -61,22 +48,14 @@ export class MetricsConfigRepository {
 
   async create(createMetricsConfigDto: CreateMetricsConfigDto): Promise<MetricsConfig> {
     try {
-      const query = `
-        INSERT INTO metrics_config (promql_name, name, description, service_id, aggregation, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-        RETURNING *
-      `;
-      
-      const values = [
-        createMetricsConfigDto.promql_name,
-        createMetricsConfigDto.name,
-        createMetricsConfigDto.description,
-        createMetricsConfigDto.service_id,
-        createMetricsConfigDto.aggregation
-      ];
-
-      const result = await this.pool.query(query, values);
-      return this.mapRowToEntity(result.rows[0]);
+      const metricsConfig = this.repository.create({
+        promql_name: createMetricsConfigDto.promql_name,
+        name: createMetricsConfigDto.name,
+        description: createMetricsConfigDto.description,
+        service_id: createMetricsConfigDto.service_id,
+        aggregation: createMetricsConfigDto.aggregation
+      });
+      return await this.repository.save(metricsConfig);
     } catch (error) {
       throw new Error(`Failed to create metrics config: ${error}`);
     }
@@ -84,59 +63,34 @@ export class MetricsConfigRepository {
 
   async update(id: number, updateMetricsConfigDto: UpdateMetricsConfigDto): Promise<MetricsConfig | null> {
     try {
-      // Build dynamic query based on provided fields
-      const updateFields: string[] = [];
-      const values: any[] = [];
-      let paramIndex = 1;
+      const updateData: Partial<MetricsConfig> = {};
 
       if (updateMetricsConfigDto.promql_name !== undefined) {
-        updateFields.push(`promql_name = $${paramIndex++}`);
-        values.push(updateMetricsConfigDto.promql_name);
+        updateData.promql_name = updateMetricsConfigDto.promql_name;
       }
 
       if (updateMetricsConfigDto.name !== undefined) {
-        updateFields.push(`name = $${paramIndex++}`);
-        values.push(updateMetricsConfigDto.name);
+        updateData.name = updateMetricsConfigDto.name;
       }
 
       if (updateMetricsConfigDto.description !== undefined) {
-        updateFields.push(`description = $${paramIndex++}`);
-        values.push(updateMetricsConfigDto.description);
+        updateData.description = updateMetricsConfigDto.description;
       }
 
       if (updateMetricsConfigDto.service_id !== undefined) {
-        updateFields.push(`service_id = $${paramIndex++}`);
-        values.push(updateMetricsConfigDto.service_id);
+        updateData.service_id = updateMetricsConfigDto.service_id;
       }
 
       if (updateMetricsConfigDto.aggregation !== undefined) {
-        updateFields.push(`aggregation = $${paramIndex++}`);
-        values.push(updateMetricsConfigDto.aggregation);
+        updateData.aggregation = updateMetricsConfigDto.aggregation;
       }
 
-      // Always update the updated_at timestamp
-      updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
-
-      if (updateFields.length === 0) {
-        // No fields to update, just return the existing record
+      if (Object.keys(updateData).length === 0) {
         return await this.findById(id);
       }
 
-      values.push(id);
-      const query = `
-        UPDATE metrics_config 
-        SET ${updateFields.join(', ')}
-        WHERE id = $${paramIndex}
-        RETURNING *
-      `;
-
-      const result = await this.pool.query(query, values);
-      
-      if (result.rows.length === 0) {
-        return null;
-      }
-
-      return this.mapRowToEntity(result.rows[0]);
+      await this.repository.update(id, updateData);
+      return await this.findById(id);
     } catch (error) {
       throw new Error(`Failed to update metrics config with id ${id}: ${error}`);
     }
@@ -144,28 +98,10 @@ export class MetricsConfigRepository {
 
   async delete(id: number): Promise<boolean> {
     try {
-      const query = 'DELETE FROM metrics_config WHERE id = $1';
-      const result = await this.pool.query(query, [id]);
-      return result.rowCount ? result.rowCount > 0 : false;
+      const result = await this.repository.delete(id);
+      return result.affected ? result.affected > 0 : false;
     } catch (error) {
       throw new Error(`Failed to delete metrics config with id ${id}: ${error}`);
     }
-  }
-
-  private mapRowToEntity(row: any): MetricsConfig {
-    const metricsConfig = new MetricsConfig();
-    metricsConfig.id = row.id;
-    metricsConfig.promql_name = row.promql_name;
-    metricsConfig.name = row.name;
-    metricsConfig.description = row.description;
-    metricsConfig.service_id = row.service_id;
-    metricsConfig.aggregation = row.aggregation;
-    metricsConfig.created_at = row.created_at ? new Date(row.created_at) : new Date();
-    metricsConfig.updated_at = row.updated_at ? new Date(row.updated_at) : new Date();
-    return metricsConfig;
-  }
-
-  private mapRowsToEntities(rows: any[]): MetricsConfig[] {
-    return rows.map(row => this.mapRowToEntity(row));
   }
 } 

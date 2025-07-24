@@ -1,64 +1,54 @@
-import { Pool } from 'pg';
+import { Repository, In, Between } from 'typeorm';
 import { Metric } from '../entities/Metric';
 import { CreateMetricDto, UpdateMetricDto, MetricFilterDto } from '../dto/MetricDto';
 
 export class MetricRepository {
-  private pool: Pool;
+  private repository: Repository<Metric>;
 
-  constructor(pool: Pool) {
-    this.pool = pool;
+  constructor(repository: Repository<Metric>) {
+    this.repository = repository;
+  }
+
+  // Helper method to convert date field from string to number
+  private convertDateField(metric: Metric): Metric {
+    return {
+      ...metric,
+      date: metric.date ? Number(metric.date) : undefined
+    };
+  }
+
+  // Helper method to convert date fields for arrays
+  private convertDateFields(metrics: Metric[]): Metric[] {
+    return metrics.map(metric => this.convertDateField(metric));
   }
 
   async findAll(filter?: MetricFilterDto): Promise<Metric[]> {
     try {
-      let query = 'SELECT * FROM metrics';
-      const conditions: string[] = [];
-      const values: any[] = [];
-      let paramIndex = 1;
+      const whereConditions: any = {};
 
       if (filter?.metrics_config_id) {
-        conditions.push(`metrics_config_id = $${paramIndex}`);
-        values.push(filter.metrics_config_id);
-        paramIndex++;
+        whereConditions.metrics_config_id = filter.metrics_config_id;
       }
 
       if (filter?.state) {
-        conditions.push(`state = $${paramIndex}`);
-        values.push(filter.state);
-        paramIndex++;
+        whereConditions.state = filter.state;
       }
 
-      if (filter?.date_from) {
-        conditions.push(`date >= $${paramIndex}`);
-        values.push(filter.date_from);
-        paramIndex++;
+      if (filter?.date_from || filter?.date_to) {
+        whereConditions.date = Between(
+          filter.date_from || 0,
+          filter.date_to || Number.MAX_SAFE_INTEGER
+        );
       }
 
-      if (filter?.date_to) {
-        conditions.push(`date <= $${paramIndex}`);
-        values.push(filter.date_to);
-        paramIndex++;
-      }
+      const metrics = await this.repository.find({
+        where: Object.keys(whereConditions).length > 0 ? whereConditions : undefined,
+        order: { created_at: 'DESC' },
+        skip: filter?.offset,
+        take: filter?.limit
+      });
 
-      if (conditions.length > 0) {
-        query += ' WHERE ' + conditions.join(' AND ');
-      }
-
-      query += ' ORDER BY created_at DESC';
-
-      if (filter?.limit) {
-        query += ` LIMIT $${paramIndex}`;
-        values.push(filter.limit);
-        paramIndex++;
-      }
-
-      if (filter?.offset) {
-        query += ` OFFSET $${paramIndex}`;
-        values.push(filter.offset);
-      }
-
-      const result = await this.pool.query(query, values);
-      return this.mapRowsToEntities(result.rows);
+      return this.convertDateFields(metrics);
     } catch (error) {
       throw new Error(`Failed to fetch metrics: ${error}`);
     }
@@ -66,14 +56,13 @@ export class MetricRepository {
 
   async findById(id: number): Promise<Metric | null> {
     try {
-      const query = 'SELECT * FROM metrics WHERE id = $1';
-      const result = await this.pool.query(query, [id]);
+      const metric = await this.repository.findOne({ where: { id } });
       
-      if (result.rows.length === 0) {
+      if (!metric) {
         return null;
       }
-
-      return this.mapRowToEntity(result.rows[0]);
+      
+      return this.convertDateField(metric);
     } catch (error) {
       throw new Error(`Failed to fetch metric with id ${id}: ${error}`);
     }
@@ -81,25 +70,19 @@ export class MetricRepository {
 
   async create(metricData: CreateMetricDto): Promise<Metric> {
     try {
-      const query = `
-        INSERT INTO metrics (metrics_config_id, name, date, state, image_url, summary_text, comment, value, criticalityScore) 
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
-        RETURNING *
-      `;
-      const values = [
-        metricData.metrics_config_id,
-        metricData.name,
-        metricData.date,
-        metricData.state,
-        metricData.image_url,
-        metricData.summary_text,
-        metricData.comment,
-        metricData.value,
-        metricData.criticalityScore
-      ];
-      
-      const result = await this.pool.query(query, values);
-      return this.mapRowToEntity(result.rows[0]);
+      const metric = this.repository.create({
+        metrics_config_id: metricData.metrics_config_id,
+        name: metricData.name,
+        date: metricData.date,
+        state: metricData.state,
+        image_url: metricData.image_url,
+        summary_text: metricData.summary_text,
+        comment: metricData.comment,
+        value: metricData.value,
+        criticalityScore: metricData.criticalityScore
+      });
+      const savedMetric = await this.repository.save(metric);
+      return this.convertDateField(savedMetric);
     } catch (error) {
       throw new Error(`Failed to create metric: ${error}`);
     }
@@ -107,83 +90,50 @@ export class MetricRepository {
 
   async update(id: number, metricData: UpdateMetricDto): Promise<Metric | null> {
     try {
-      const updateFields: string[] = [];
-      const values: any[] = [];
-      let paramIndex = 1;
+      const updateData: Partial<Metric> = {};
 
       if (metricData.metrics_config_id !== undefined) {
-        updateFields.push(`metrics_config_id = $${paramIndex}`);
-        values.push(metricData.metrics_config_id);
-        paramIndex++;
+        updateData.metrics_config_id = metricData.metrics_config_id;
       }
 
       if (metricData.name !== undefined) {
-        updateFields.push(`name = $${paramIndex}`);
-        values.push(metricData.name);
-        paramIndex++;
+        updateData.name = metricData.name;
       }
 
       if (metricData.date !== undefined) {
-        updateFields.push(`date = $${paramIndex}`);
-        values.push(metricData.date);
-        paramIndex++;
+        updateData.date = metricData.date;
       }
 
       if (metricData.state !== undefined) {
-        updateFields.push(`state = $${paramIndex}`);
-        values.push(metricData.state);
-        paramIndex++;
+        updateData.state = metricData.state;
       }
 
       if (metricData.image_url !== undefined) {
-        updateFields.push(`image_url = $${paramIndex}`);
-        values.push(metricData.image_url);
-        paramIndex++;
+        updateData.image_url = metricData.image_url;
       }
 
       if (metricData.summary_text !== undefined) {
-        updateFields.push(`summary_text = $${paramIndex}`);
-        values.push(metricData.summary_text);
-        paramIndex++;
+        updateData.summary_text = metricData.summary_text;
       }
 
       if (metricData.comment !== undefined) {
-        updateFields.push(`comment = $${paramIndex}`);
-        values.push(metricData.comment);
-        paramIndex++;
+        updateData.comment = metricData.comment;
       }
 
       if (metricData.value !== undefined) {
-        updateFields.push(`value = $${paramIndex}`);
-        values.push(metricData.value);
-        paramIndex++;
+        updateData.value = metricData.value;
       }
 
       if (metricData.criticalityScore !== undefined) {
-        updateFields.push(`criticalityScore = $${paramIndex}`);
-        values.push(metricData.criticalityScore);
-        paramIndex++;
+        updateData.criticalityScore = metricData.criticalityScore;
       }
 
-      if (updateFields.length === 0) {
-        return this.findById(id);
+      if (Object.keys(updateData).length === 0) {
+        return await this.findById(id);
       }
 
-      values.push(id);
-      const query = `
-        UPDATE metrics 
-        SET ${updateFields.join(', ')} 
-        WHERE id = $${paramIndex} 
-        RETURNING *
-      `;
-
-      const result = await this.pool.query(query, values);
-      
-      if (result.rows.length === 0) {
-        return null;
-      }
-
-      return this.mapRowToEntity(result.rows[0]);
+      await this.repository.update(id, updateData);
+      return await this.findById(id);
     } catch (error) {
       throw new Error(`Failed to update metric with id ${id}: ${error}`);
     }
@@ -191,9 +141,8 @@ export class MetricRepository {
 
   async delete(id: number): Promise<boolean> {
     try {
-      const query = 'DELETE FROM metrics WHERE id = $1';
-      const result = await this.pool.query(query, [id]);
-      return result.rowCount !== 0;
+      const result = await this.repository.delete(id);
+      return result.affected ? result.affected > 0 : false;
     } catch (error) {
       throw new Error(`Failed to delete metric with id ${id}: ${error}`);
     }
@@ -205,41 +154,17 @@ export class MetricRepository {
         return [];
       }
 
-      const placeholders = configIds.map((_, index) => `$${index + 2}`).join(',');
-      const query = `
-        SELECT * FROM metrics 
-        WHERE metrics_config_id IN (${placeholders}) 
-        AND date = $1 
-        ORDER BY created_at DESC
-      `;
-      
-      const values = [date, ...configIds];
-      const result = await this.pool.query(query, values);
-      return this.mapRowsToEntities(result.rows);
+      const metrics = await this.repository.find({
+        where: {
+          metrics_config_id: In(configIds),
+          date: date
+        },
+        order: { created_at: 'DESC' }
+      });
+
+      return this.convertDateFields(metrics);
     } catch (error) {
       throw new Error(`Failed to fetch metrics for config IDs and date: ${error}`);
     }
-  }
-
-  private mapRowToEntity(row: any): Metric {
-    const metric = new Metric();
-    metric.id = row.id;
-    metric.metrics_config_id = row.metrics_config_id;
-    metric.name = row.name;
-    // Ensure date is properly converted to number (epoch)
-    metric.date = row.date ? Number(row.date) : undefined;
-    metric.state = row.state;
-    metric.image_url = row.image_url;
-    metric.summary_text = row.summary_text;
-    metric.comment = row.comment;
-    metric.value = row.value ? Number(row.value) : undefined;
-    metric.criticalityScore = row.criticalityScore ? Number(row.criticalityScore) : undefined;
-    metric.created_at = row.created_at ? new Date(row.created_at) : new Date();
-    metric.updated_at = row.updated_at ? new Date(row.updated_at) : new Date();
-    return metric;
-  }
-
-  private mapRowsToEntities(rows: any[]): Metric[] {
-    return rows.map(row => this.mapRowToEntity(row));
   }
 } 

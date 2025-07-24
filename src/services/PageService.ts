@@ -66,7 +66,6 @@ export class PageService {
      */
     async findByServiceId(serviceId: number): Promise<PageDto[]> {
         const pages = await this.pageRepository.findByServiceId(serviceId);
-        console.log("dailyPages date type", pages[0].date, typeof pages[0].date);
         return pages.map(PageMapper.fromEntityToDto);
     }
 
