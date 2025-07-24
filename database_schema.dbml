@@ -1,0 +1,61 @@
+// Use DBML to define your database structure
+// Docs: https://dbml.dbdiagram.io/docs
+
+Table services {
+  id integer [primary key]
+  service_name varchar(255)
+}
+
+Table pages {
+  id integer [primary key]
+  service_id integer [not null]
+  name varchar(255)
+  parent_id integer
+  heading varchar(255)
+  date bigint
+  summary text
+  annotations text
+}
+
+Table anomalies {
+  id integer [primary key]
+  page_id integer [not null]
+  image_url varchar(255)
+  summary_text text
+  comment text
+  anomaly_id integer
+}
+
+Table action_items {
+  id integer [primary key]
+  jira_link varchar(255)
+  anomaly_id integer [not null]
+  service_id integer [not null]
+}
+
+Table metrics_config {
+  id integer [primary key]
+  promql_name varchar(255)
+  name varchar(255)
+  description text
+  service_id integer [not null]
+  aggregation varchar(255)
+}
+
+Table metrics {
+  id integer [primary key]
+  service_id integer [not null]
+  metrics_config_id integer [not null]
+  date bigint
+  value float
+}
+
+// Relationships
+Ref: pages.service_id > services.id // many-to-one
+Ref: pages.parent_id > pages.id // self-referencing (parent-child)
+Ref: anomalies.page_id > pages.id // many-to-one
+Ref: action_items.anomaly_id > anomalies.id // many-to-one
+Ref: action_items.service_id > services.id // many-to-one
+Ref: metrics_config.service_id > services.id // many-to-one
+Ref: metrics.service_id > services.id // many-to-one
+Ref: metrics.metrics_config_id > metrics_config.id // many-to-one 

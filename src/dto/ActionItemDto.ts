@@ -1,0 +1,21 @@
+export interface ActionItemDto {
+    id: number;
+    jira_link?: string;
+    metric_id: number;
+}
+
+export interface CreateActionItemDto {
+    jira_link?: string;
+    metric_id: number;
+}
+
+export interface UpdateActionItemDto {
+    jira_link?: string;
+    metric_id?: number;
+}
+
+export interface ActionItemFilterDto {
+    metric_id?: number;
+    limit?: number;
+    offset?: number;
+} 
