@@ -12,7 +12,7 @@ export class S3Service {
                 secretAccessKey: 'minioadmin'
             },
             forcePathStyle: true,
-            endpoint: 'http://192.168.70.240:9000'  // Update this to your MinIO server URL if different
+            endpoint: process.env.AWS_ENDPOINT_URL || 'http://localhost:9000'  // Update this to your MinIO server URL if different
         });
     }
 
