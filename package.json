@@ -9,7 +9,8 @@
     "dev": "ts-node-dev --transpile-only src/server.ts",
     "test": "jest",
     "test-pyclient": "ts-node src/clients/test-pyclient.ts",
-    "test-api": "ts-node src/clients/test-api-endpoints.ts"
+    "test-api": "ts-node src/clients/test-api-endpoints.ts",
+    "test-s3": "ts-node src/test-s3-service.ts"
   },
   "keywords": [
     "typescript",
@@ -20,6 +21,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.850.0",
+    "@aws-sdk/s3-request-presigner": "^3.850.0",
     "@types/pg": "^8.15.4",
     "axios": "^1.6.0",
     "cors": "^2.8.5",

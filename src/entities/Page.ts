@@ -34,7 +34,10 @@ export class Page {
     date?: number;
 
     @Column({ type: "text", nullable: true })
-    summary?: string;
+    opsgenie_summary?: string;
+
+    @Column({ type: "text", nullable: true })
+    metric_summary?: string;
 
     @Column({ type: "text", nullable: true })
     annotations?: string;

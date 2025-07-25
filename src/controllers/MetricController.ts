@@ -92,6 +92,84 @@ export class MetricController {
     }
 
     /**
+     * Generate metric summary for a specific page
+     */
+    async generateMetricSummary(req: Request, res: Response): Promise<void> {
+        try {
+            const { service_name, date, page_id } = req.body;
+            
+            if (!page_id || typeof page_id !== 'number') {
+                res.status(400).json({
+                    success: false,
+                    error: "page_id is required and must be a number"
+                });
+                return;
+            }
+
+            const result = await this.metricService.generateMetricSummaryForPage(page_id);
+            
+            if (result.success) {
+                res.status(200).json({
+                    success: true,
+                    message: "Metric summary generation triggered successfully",
+                    results: result.results
+                });
+            } else {
+                res.status(500).json({
+                    success: false,
+                    error: result.error || "Failed to generate metric summary",
+                    results: result.results
+                });
+            }
+        } catch (error) {
+            console.error('[MetricController] Error generating metric summary:', error);
+            res.status(500).json({
+                success: false,
+                error: "Internal server error"
+            });
+        }
+    }
+
+    /**
+     * Generate opsgenie summary for a specific page
+     */
+    async generateOpsgenieSummary(req: Request, res: Response): Promise<void> {
+        try {
+            const { page_id, team_id, team_name, start_date, end_date } = req.body;
+            
+            if (!page_id || typeof page_id !== 'number') {
+                res.status(400).json({
+                    success: false,
+                    error: "page_id is required and must be a number"
+                });
+                return;
+            }
+
+            const result = await this.metricService.generateOpsgenieSummaryForPage(page_id);
+            
+            if (result.success) {
+                res.status(200).json({
+                    success: true,
+                    message: "Opsgenie summary generation triggered successfully",
+                    results: result.results
+                });
+            } else {
+                res.status(500).json({
+                    success: false,
+                    error: result.error || "Failed to generate opsgenie summary",
+                    results: result.results
+                });
+            }
+        } catch (error) {
+            console.error('[MetricController] Error generating opsgenie summary:', error);
+            res.status(500).json({
+                success: false,
+                error: "Internal server error"
+            });
+        }
+    }
+
+    /**
      * Get all metrics with optional filtering
      */
     async getAllMetrics(req: Request, res: Response): Promise<void> {

@@ -9,6 +9,8 @@ import { AppDataSource } from '../database/data-source';
 import { Page } from '../entities/Page';
 import { Metric } from '../entities/Metric';
 import { MetricsConfig } from '../entities/MetricsConfig';
+import { ServiceRepository } from '../repositories/ServiceRepository';
+import { Service } from '../entities/Service';
 
 export const createPageRoutes = () => {
   const router = Router();
@@ -16,8 +18,9 @@ export const createPageRoutes = () => {
   // Initialize dependencies with TypeORM repositories
   const pageRepository = new PageRepository(AppDataSource.getRepository(Page));
   const metricRepository = new MetricRepository(AppDataSource.getRepository(Metric));
+  const serviceRepository = new ServiceRepository(AppDataSource.getRepository(Service));
   const metricsConfigRepository = new MetricsConfigRepository(AppDataSource.getRepository(MetricsConfig));
-  const metricService = new MetricService(metricRepository, metricsConfigRepository);
+  const metricService = new MetricService(metricRepository, metricsConfigRepository, pageRepository, serviceRepository);
   const pageService = new PageService(pageRepository, metricService);
   const pageController = new PageController(pageService);
 

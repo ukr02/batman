@@ -3,9 +3,14 @@ import { PageService } from "../services/PageService";
 import { CreatePageDto, PageFilterDto } from "../dto/PageDto";
 import { PageType } from "../entities/Page";
 import { MetricState } from "../entities/Metric";
+import { S3Service } from "../services/S3Service";
 
 export class PageController {
-    constructor(private pageService: PageService) {}
+    private s3Service: S3Service;
+
+    constructor(private pageService: PageService) {
+        this.s3Service = new S3Service();
+    }
 
     /**
      * Create a page and trigger metric generation for the corresponding service
@@ -137,10 +142,38 @@ export class PageController {
                 });
                 return;
             }
+
+            // Generate presigned URLs for metric images
+            const metricsWithPresignedUrls = await Promise.all(
+                pageWithMetrics.metrics.map(async (metric) => {
+                    let presignedImageUrl = metric.image_url || "/anomaly_detection_plot.png";
+                    
+                    // Generate presigned URL if the image_url is not already a full URL
+                    if (metric.image_url && !metric.image_url.startsWith('http') && !metric.image_url.startsWith('/')) {
+                        try {
+                            presignedImageUrl = await this.s3Service.generateMetricImageURL(metric.image_url);
+                        } catch (error) {
+                            console.error(`[PageController] Error generating presigned URL for metric ${metric.id}:`, error);
+                            // Keep original URL if presigned URL generation fails
+                            presignedImageUrl = metric.image_url;
+                        }
+                    }
+                    
+                    return {
+                        ...metric,
+                        presignedImageUrl
+                    };
+                })
+            );
+
+            const responseWithPresignedUrls = {
+                ...pageWithMetrics,
+                metrics: metricsWithPresignedUrls
+            };
             
             res.status(200).json({
                 success: true,
-                data: pageWithMetrics
+                data: responseWithPresignedUrls
             });
         } catch (error) {
             console.error('[PageController] Error getting page with metrics:', error);
@@ -184,16 +217,52 @@ export class PageController {
             };
             console.log("pageWithMetrics", pageWithMetrics);
 
-            // Map metrics to anomalies
-            const anomalies = pageWithMetrics.metrics.map(metric => ({
-                id: metric.id,
-                title: metric.name || `Metric ${metric.id}`,
-                severity: metric.criticalityScore && metric.criticalityScore > 7 ? "high" : 
-                         metric.criticalityScore && metric.criticalityScore > 4 ? "medium" : "low",
-                description: metric.summary_text || `Anomaly detected in ${metric.name || 'metric'}`,
-                graphImage: metric.image_url || "/anomaly_detection_plot.png",
-                state: this.getMetricState(metric.state) || "unresolved"
-            }));
+            // Generate presigned URLs for metric images
+            // Merge metricsWithPresignedUrls and anomalies mapping into a single step
+            const anomalies = await Promise.all(
+                pageWithMetrics.metrics.map(async (metric) => {
+                    let presignedImageUrl = metric.image_url || "/anomaly_detection_plot.png";
+                    
+                    // Generate presigned URL if the image_url is not already a full URL
+                    if (metric.image_url && !metric.image_url.startsWith('http') && !metric.image_url.startsWith('/')) {
+                        try {
+                            presignedImageUrl = await this.s3Service.generateMetricImageURL(metric.image_url);
+                        } catch (error) {
+                            console.error(`[PageController] Error generating presigned URL for metric ${metric.id}:`, error);
+                            // Keep original URL if presigned URL generation fails
+                            presignedImageUrl = metric.image_url;
+                        }
+                    }
+                    
+                    return {
+                        id: metric.id,
+                        title: metric.name || `Metric ${metric.id}`,
+                        criticalityScore: metric.criticalityScore || 0,
+                        description: metric.summary_text || `Anomaly detected in ${metric.name || 'metric'}`,
+                        graphImage: presignedImageUrl,
+                        state: this.getMetricState(metric.state) || "unresolved"
+                    };
+                })
+            );
+
+            // Sort anomalies by criticality score (highest first) and assign severity levels
+            const sortedAnomalies = anomalies
+                .sort((a, b) => (b.criticalityScore || 0) - (a.criticalityScore || 0))
+                .map((anomaly, index) => {
+                    let severity: string;
+                    if (index < 1) {
+                        severity = "high";
+                    } else if (index < 3) {
+                        severity = "medium";
+                    } else {
+                        severity = "low";
+                    }
+                    
+                    return {
+                        ...anomaly,
+                        severity
+                    };
+                });
 
             // Create comments array from metric comments
             const comments = pageWithMetrics.metrics
@@ -220,8 +289,9 @@ export class PageController {
             const response = {
                 name: pageWithMetrics.page.name,
                 date: formatDate(pageWithMetrics.page.date),
-                summary: pageWithMetrics.page.summary || "Network monitoring logs showing connection patterns and bandwidth utilization across the infrastructure.",
-                anomalies: anomalies,
+                summary: pageWithMetrics.page.opsgenie_summary + "\n" + pageWithMetrics.page.metrics_summary 
+                    || "Network monitoring logs showing connection patterns and bandwidth utilization across the infrastructure.",
+                anomalies: sortedAnomalies,
                 comments: comments,
                 summaries: summaries
             };

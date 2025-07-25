@@ -5,11 +5,15 @@ import { MetricMapper } from "../mappers/MetricMapper";
 import { pyClient } from "../clients/PyClient";
 import { MetricRepository } from "../repositories/MetricRepository";
 import { MetricsConfigRepository } from "../repositories/MetricsConfigRepository";
+import { PageRepository } from "../repositories/PageRepository";
+import { ServiceRepository } from "../repositories/ServiceRepository";
 
 export class MetricService {
     constructor(
         private metricRepository: MetricRepository,
-        private metricsConfigRepository: MetricsConfigRepository
+        private metricsConfigRepository: MetricsConfigRepository,
+        private pageRepository: PageRepository,
+        private serviceRepository: ServiceRepository
     ) {}
 
     async generateMetricsForDate(date: number): Promise<{ success: boolean; results: Array<{ config_id: number; success: boolean; error?: string }>; error?: string }> {
@@ -97,6 +101,58 @@ export class MetricService {
                 results: [],
                 error: error instanceof Error ? error.message : "Unknown error"
             };
+        }
+    }
+
+    async generateMetricSummaryForPage(pageId: number): Promise<{ success: boolean; results: Array<{ config_id: number; success: boolean; error?: string }>; error?: string }> {
+        try {
+            const page = await this.pageRepository.findById(pageId);
+            if (!page) {
+                return { success: false, results: [], error: "Page not found" };
+            }
+            if (!page.date) {
+                return { success: false, results: [], error: "Page date is required" };
+            }
+
+            // Fetch service information
+            const service = await this.serviceRepository.findById(page.service_id);
+            if (!service) {
+                return { success: false, results: [], error: "Service not found" };
+            }
+
+            const success = await pyClient.genMetricSummary(page.id, page.date, service.service_name);
+            return { success: success, results: [] };
+        } catch (error) {
+            console.error(`[MetricService] Error generating metric summary for page ${pageId}:`, error);
+            return { success: false, results: [], error: error instanceof Error ? error.message : "Unknown error" };
+        }
+    }
+
+    async generateOpsgenieSummaryForPage(pageId: number): Promise<{ success: boolean; results: Array<{ config_id: number; success: boolean; error?: string }>; error?: string }> {
+        try {
+            const page = await this.pageRepository.findById(pageId);
+            if (!page) {
+                return { success: false, results: [], error: "Page not found" };
+            }
+            
+            // Convert epoch date to YYYY-MM-DD format for start and end dates
+            const pageDate = new Date(page.date || 0);
+            const startDate = pageDate.toISOString().split('T')[0];
+            
+            // End date should be start date + 1 day
+            const endDateObj = new Date(pageDate);
+            endDateObj.setDate(endDateObj.getDate() + 1);
+            const endDate = endDateObj.toISOString().split('T')[0];
+            
+            // Default team information - these could be made configurable
+            const teamId = "98499308-0144-46f2-aafc-b426b7aed8f3";
+            const teamName = "CBS Team";
+            
+            const success = await pyClient.genOpsgenieSummary(pageId, teamId, teamName, startDate, endDate);
+            return { success: success, results: [] };
+        } catch (error) {
+            console.error(`[MetricService] Error generating opsgenie summary for page ${pageId}:`, error);
+            return { success: false, results: [], error: error instanceof Error ? error.message : "Unknown error" };
         }
     }
 

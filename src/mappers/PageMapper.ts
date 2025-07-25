@@ -12,7 +12,8 @@ export class PageMapper {
             parent_id: entity.parent_id,
             heading: entity.heading,
             date: entity.date,
-            summary: entity.summary,
+            opsgenie_summary: entity.opsgenie_summary,
+            metrics_summary: entity.metric_summary,
             annotations: entity.annotations,
             created_at: entity.created_at,
             updated_at: entity.updated_at

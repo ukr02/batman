@@ -8,7 +8,8 @@ export interface PageDto {
     parent_id?: number;
     heading?: string;
     date?: number;
-    summary?: string;
+    opsgenie_summary?: string;
+    metrics_summary?: string;
     annotations?: string;
     created_at: Date;
     updated_at: Date;

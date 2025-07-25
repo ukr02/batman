@@ -236,6 +236,44 @@ export class PyClient {
   };
 
   /**
+   * Generate metric summary for a specific page
+   */
+  public genMetricSummary = async (pageId: number, date: number, serviceName: string): Promise<boolean> => {
+    try {
+      const response = await this.post('/metrics-summary/generate', {
+        page_id: pageId,
+        date: new Date(date).toISOString().split('T')[0], // Convert epoch to YYYY-MM-DD format
+        service_name: serviceName
+      });
+      
+      return response.ok;
+    } catch (error) {
+      console.error(`[PyClient] Error generating metric summary for page ${pageId}, date ${date}:`, error);
+      return false;
+    }
+  };
+
+  /**
+   * Generate opsgenie summary for a specific page
+   */
+  public genOpsgenieSummary = async (pageId: number, teamId: string, teamName: string, startDate: string, endDate: string): Promise<boolean> => {
+    try {
+      const response = await this.post('/opsgenie/summary', {
+        page_id: pageId,
+        team_id: teamId,
+        team_name: teamName,
+        start_date: startDate,
+        end_date: endDate
+      });
+      
+      return response.ok;
+    } catch (error) {
+      console.error(`[PyClient] Error generating opsgenie summary for page ${pageId}:`, error);
+      return false;
+    }
+  };
+
+  /**
    * Set default headers
    */
   public setDefaultHeaders(headers: Record<string, string>): void {

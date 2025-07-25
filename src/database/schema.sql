@@ -15,7 +15,6 @@ CREATE TABLE IF NOT EXISTS pages (
     parent_id INTEGER,
     heading VARCHAR(255),
     date BIGINT,
-    summary TEXT,
     annotations TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
@@ -44,7 +43,7 @@ CREATE TABLE IF NOT EXISTS metrics (
     summary_text TEXT,
     comment TEXT,
     value FLOAT,
-    criticalityScore INTEGER CHECK (criticalityScore >= 1 AND criticalityScore <= 100),
+    criticality_score INTEGER,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
